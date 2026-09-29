@@ -1,0 +1,15 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><link rel="stylesheet" href="../web/css/fonts.css"><link rel="stylesheet" href="../web/css/app.css?v=1.4.2"><title>界面对照预览</title></head><body><div id="app"></div><script>window.__appErrors=[];window.addEventListener("error",e=>{if((e.filename||"").includes("/web/"))window.__appErrors.push(e.message);});</script><script src="../web/js/nutrition.js"></script><script src="../web/js/health-ui.js"></script><script src="../web/js/model-settings.js"></script><script src="../web/js/vision-core.js"></script><script src="../web/js/food-photo.js"></script><script src="../web/js/app.js"></script><script src="../web/js/keyboard-layout.js"></script><script>
+// Development-only host. This file is outside web/ and is never packaged in the APK.
+state.preview=true;
+const params=new URLSearchParams(location.search);
+const routes={"00_1":["login"],"00_2":["login"],"00_3":["login"],"01":["home"],"02":["accounts"],"asset-hub":["assets"],"03":["account-form"],"04":["account-detail"],"05":["account-form"],"06":["account-form"],"07":["account-form"],"08":["categories"],"09":["category-add"],"10":["category-edit"],"11":["ledger"],"12":["ledger"],"13":["mine"],"14":["members"],"15":["invite"],"16":["stats","month"],"18":["category-flow"],"19":["stats","calendar"],"21_1":["stats","year"],"21_2":["stats","year"],"22":["stats","surplus"],"23":["stats","members"],"28":["stats","year"],"29":["renqing"],"30":["renqing-add"],"31":["ledger-all"],"32":["houses"],"33":["house-add"],"34":["addresses"],"35":["address-add"],"36":["health"],"37":["health-person"],"38":["weight"]};
+const key=params.get("screen")||"01", entry=routes[key]||routes["01"];
+state.route=entry[0];state.statsTab=entry[1]||"month";state.draft={accountId:1,healthIndex:0};state.formValues={};
+if(key==="00_1"||key==="00_3")state.authMode="register";
+if(key==="12")state.draft.kind="income";
+if(key==="10")state.draft.editingCategory="餐饮";
+if(key==="05")state.draft.account={...state.accounts[0]};
+if(["03","05","07"].includes(key)){state.draft.account||={type:"储蓄卡",counted:true};state.modal={type:"account-type",title:"选择账户类型"};}
+if(key==="31")state.ledger=[];
+render();
+</script></body></html>

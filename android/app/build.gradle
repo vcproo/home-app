@@ -1,0 +1,40 @@
+plugins {
+    id "com.android.application"
+}
+
+android {
+    namespace "com.jiatshenghuo.life"
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "com.jiatshenghuo.life"
+        minSdk 24
+        targetSdk 34
+        versionCode 8
+        versionName "1.5.0"
+        testInstrumentationRunner project.findProperty("smokeRunner") ?: "com.jiatshenghuo.life.HealthSmokeInstrumentation"
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+        }
+    }
+}
+
+def webDir = new File(rootDir.parentFile, "web")
+
+tasks.register("copyWeb", Sync) {
+    from webDir
+    exclude("assets/fonts/*.ttf")
+    into layout.projectDirectory.dir("src/main/assets/www")
+}
+
+tasks.named("preBuild").configure {
+    dependsOn("copyWeb")
+}

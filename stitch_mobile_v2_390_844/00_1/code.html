@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+
+<html lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
+<title>00 · 登录注册</title>
+<!-- Tailwind CSS v3 with forms and container queries -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              DEFAULT: '#275945',
+              dark: '#1F4D3A',
+              light: '#E6EFEA'
+            },
+            canvas: '#F7F6F3',
+            muted: '#8E9590',
+            subtle: '#FAF9F6',
+            cardBorder: '#ECEBE6',
+            inputBorder: '#E8E6DF'
+          },
+          fontFamily: {
+            sans: ['-apple-system', 'BlinkMacSystemFont', '"PingFang SC"', '"Hiragino Sans GB"', '"Microsoft YaHei"', 'sans-serif']
+          }
+        }
+      }
+    };
+  </script>
+<!-- BEGIN: CustomStyles -->
+<style data-purpose="base-layout">
+    body {
+      background-color: #E5E7EB;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    .mobile-frame {
+      width: 390px;
+      height: 844px;
+      background-color: #F7F6F3;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+  </style>
+<style data-purpose="ui-components">
+    input::placeholder {
+      color: #A3A8A2;
+    }
+    input:focus {
+      outline: none;
+      box-shadow: none;
+    }
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20%, 60% { transform: translateX(-5px); }
+      40%, 80% { transform: translateX(5px); }
+    }
+    .animate-shake {
+      animation: shake 0.35s ease-in-out;
+    }
+    /* Error styling classes */
+    .input-error {
+      border-color: #EF4444 !important;
+      background-color: #FEF2F2 !important;
+    }
+    .input-error:focus-within {
+      border-color: #DC2626 !important;
+    }
+  </style>
+<!-- END: CustomStyles -->
+</head>
+<body>
+<!-- BEGIN: MobileDeviceContainer -->
+<div class="mobile-frame shadow-2xl relative select-none">
+<!-- Global Toast / Alert Notification -->
+<div class="absolute top-12 left-5 right-5 z-50 transform -translate-y-6 opacity-0 pointer-events-none transition-all duration-300 flex items-center p-3 rounded-xl bg-[#FEE2E2] border border-[#FCA5A5] text-[#991B1B] shadow-md" id="toast">
+<svg class="w-4 h-4 shrink-0 mr-2 text-[#EF4444]" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24">
+<circle cx="12" cy="12" r="10"></circle>
+<line x1="12" x2="12" y1="8" y2="12"></line>
+<line x1="12" x2="12.01" y1="16" y2="16"></line>
+</svg>
+<span class="text-xs font-medium" id="toast-text">账号或密码不正确，请重新输入</span>
+</div>
+<!-- BEGIN: StatusBar -->
+<!-- Standard iOS status bar (time 9:41, cellular, wifi, battery) -->
+<header class="w-full h-11 px-7 flex justify-between items-center z-10 shrink-0 text-[#1F2937]" data-purpose="status-bar">
+<span class="text-sm font-semibold tracking-tight">9:41</span>
+<div class="flex items-center space-x-1.5">
+<!-- Cellular Signal Icon -->
+<svg class="w-4 h-3.5 fill-current" viewbox="0 0 17 12">
+<rect height="4" rx="0.5" width="2.5" x="0" y="8"></rect>
+<rect height="6.5" rx="0.5" width="2.5" x="4.5" y="5.5"></rect>
+<rect height="9" rx="0.5" width="2.5" x="9" y="3"></rect>
+<rect height="12" rx="0.5" width="2.5" x="13.5" y="0"></rect>
+</svg>
+<!-- Wifi Icon -->
+<svg class="w-4 h-3.5 fill-current ml-0.5" viewbox="0 0 16 12">
+<path d="M8 2.5C10.6 2.5 13 3.5 14.8 5.2L16 3.9C13.9 1.9 11.1 0.7 8 0.7C4.9 0.7 2.1 1.9 0 3.9L1.2 5.2C3 3.5 5.4 2.5 8 2.5ZM8 6.5C9.7 6.5 11.2 7.2 12.3 8.3L13.5 7.1C12.1 5.7 10.1 4.8 8 4.8C5.9 4.8 3.9 5.7 2.5 7.1L3.7 8.3C4.8 7.2 6.3 6.5 8 6.5ZM8 10C8.8 10 9.5 10.7 9.5 11.5C9.5 12.3 8.8 13 8 13C7.2 13 6.5 12.3 6.5 11.5C6.5 10.7 7.2 10 8 10Z"></path>
+</svg>
+<!-- Battery Icon -->
+<div class="w-6 h-3 border border-current rounded-[4px] p-0.5 flex items-center relative ml-0.5">
+<div class="h-full w-4 bg-current rounded-[1.5px]"></div>
+<div class="absolute -right-1 top-1 w-0.5 h-1 bg-current rounded-r-sm"></div>
+</div>
+</div>
+</header>
+<!-- END: StatusBar -->
+<!-- BEGIN: MainContentArea -->
+<main class="flex-1 px-5 flex flex-col justify-between pt-2 pb-6 overflow-hidden">
+<div>
+<!-- BEGIN: BrandHeader -->
+<!-- App icon, title and brand subtitle -->
+<section class="mt-4 mb-6 px-1 flex flex-col items-center text-center" data-purpose="brand-header">
+<div class="w-[52px] h-[52px] rounded-2xl bg-[#275945] flex items-center justify-center shadow-sm mb-3">
+<!-- Home Icon matching app visual language -->
+<svg class="w-7 h-7 text-white stroke-[2.2] fill-none stroke-current" stroke-linecap="round" stroke-linejoin="round" viewbox="0 0 24 24">
+<path d="M3 10.5L12 3l9 7.5V20a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 20v-9.5z"></path>
+<path d="M9 21.5V12h6v9.5"></path>
+</svg>
+</div>
+<h1 class="text-[22px] font-bold text-[#1F2937] tracking-tight">家庭生活</h1>
+<p class="text-[13px] text-[#78827B] mt-1.5 leading-relaxed tracking-normal">认真生活，也认真记录每一份安心。</p>
+</section>
+<!-- END: BrandHeader -->
+<!-- BEGIN: AuthCard -->
+<section class="bg-white rounded-[22px] p-6 border border-[#ECEBE6] shadow-sm transition-all" data-purpose="auth-card">
+<!-- Segmented Control Tabs -->
+<div class="bg-[#ECEAE4] rounded-full p-1 flex mb-5" data-purpose="auth-tabs">
+<button class="flex-1 py-2 text-sm font-medium text-[#6B7280] text-center rounded-full transition-all" id="tab-login" type="button">
+              登录
+            </button>
+<button class="flex-1 py-2 text-sm font-bold text-white bg-[#275945] text-center rounded-full shadow-sm transition-all" id="tab-register" type="button">
+              注册
+            </button>
+</div>
+<!-- Inline Banner Error (e.g. for login failed / account error) -->
+<div class="hidden mb-4 p-2.5 bg-red-50 border border-red-200 rounded-xl flex items-center text-red-700 text-xs transition-all" id="form-general-error">
+<svg class="w-4 h-4 shrink-0 mr-1.5 text-red-500" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24">
+<circle cx="12" cy="12" r="10"></circle>
+<line x1="12" x2="12" y1="8" y2="12"></line>
+<line x1="12" x2="12.01" y1="16" y2="16"></line>
+</svg>
+<span id="form-general-error-text">账号或密码不正确，请重新输入</span>
+</div>
+<!-- Auth Form Fields -->
+<form class="space-y-3.5" data-purpose="register-form" id="auth-form" novalidate="" onsubmit="event.preventDefault();">
+<!-- Field 1: Phone Number -->
+<div id="field-phone-wrapper">
+<label class="block text-[13.5px] font-medium text-[#374151] mb-1.5">手机号</label>
+<div class="h-12 bg-[#FAF9F6] border border-[#E8E6DF] rounded-xl px-3.5 flex items-center focus-within:border-[#275945] focus-within:bg-white transition-all" id="phone-container">
+<input class="w-full bg-transparent border-none p-0 text-[#1F2937] text-[15px] focus:ring-0 placeholder-[#A3A8A2]" id="phone-input" maxlength="11" placeholder="请输入11位手机号" type="tel"/>
+</div>
+<!-- Error Message Placeholder -->
+<p class="text-[12px] text-red-600 mt-1 hidden flex items-center" id="phone-error">
+<svg class="w-3.5 h-3.5 inline mr-1 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><line x1="12" x2="12" y1="8" y2="12"></line><line x1="12" x2="12.01" y1="16" y2="16"></line></svg>
+<span>请输入有效的11位手机号</span>
+</p>
+</div>
+<!-- Field 2: Password -->
+<div id="field-password-wrapper">
+<div class="flex justify-between items-center mb-1.5">
+<label class="block text-[13.5px] font-medium text-[#374151]">密码</label>
+<button class="text-xs text-[#275945] hidden hover:underline" id="forgot-password-link" type="button">忘记密码？</button>
+</div>
+<div class="h-12 bg-[#FAF9F6] border border-[#E8E6DF] rounded-xl px-3.5 flex items-center justify-between focus-within:border-[#275945] focus-within:bg-white transition-all" id="password-container">
+<input class="w-full bg-transparent border-none p-0 text-[#1F2937] text-[15px] focus:ring-0 placeholder-[#A3A8A2] pr-2" id="password-input" placeholder="请设置密码" type="password"/>
+<!-- Toggle Password Visibility Icon -->
+<button class="text-[#9CA3AF] hover:text-[#6B7280] focus:outline-none p-1 shrink-0" data-purpose="toggle-password" id="toggle-password-btn" type="button">
+<svg class="w-5 h-5" fill="none" id="eye-icon" stroke="currentColor" stroke-width="1.8" viewbox="0 0 24 24">
+<path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" stroke-linecap="round" stroke-linejoin="round"></path>
+<path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</button>
+</div>
+<!-- Error Message Placeholder -->
+<p class="text-[12px] text-red-600 mt-1 hidden flex items-center" id="password-error">
+<svg class="w-3.5 h-3.5 inline mr-1 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><line x1="12" x2="12" y1="8" y2="12"></line><line x1="12" x2="12.01" y1="16" y2="16"></line></svg>
+<span>密码须为6–16位，包含数字和字母</span>
+</p>
+</div>
+<!-- Field 3: Confirm Password (Hidden in login mode) -->
+<div id="field-confirm-wrapper">
+<label class="block text-[13.5px] font-medium text-[#374151] mb-1.5">确认密码</label>
+<div class="h-12 bg-[#FAF9F6] border border-[#E8E6DF] rounded-xl px-3.5 flex items-center focus-within:border-[#275945] focus-within:bg-white transition-all" id="confirm-password-container">
+<input class="w-full bg-transparent border-none p-0 text-[#1F2937] text-[15px] focus:ring-0 placeholder-[#A3A8A2]" id="confirm-password-input" placeholder="请再次输入密码" type="password"/>
+</div>
+<!-- Error Message Placeholder -->
+<p class="text-[12px] text-red-600 mt-1 hidden flex items-center" id="confirm-password-error">
+<svg class="w-3.5 h-3.5 inline mr-1 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><line x1="12" x2="12" y1="8" y2="12"></line><line x1="12" x2="12.01" y1="16" y2="16"></line></svg>
+<span>两次输入的密码不一致</span>
+</p>
+</div>
+<!-- Password Helper Text -->
+<p class="text-[12px] text-[#8C928B] leading-relaxed pt-0.5" id="password-rule-hint">
+              6–16 位，由数字和字母组成，也可以包含常见符号（如 ! @ # . _ -）。
+            </p>
+<!-- Submit Action Button -->
+<div class="pt-1">
+<button class="w-full h-12 bg-[#275945] active:bg-[#1F4D3A] text-white font-semibold text-[16px] rounded-xl shadow-sm transition duration-150 flex items-center justify-center tracking-wide cursor-pointer" id="submit-btn" type="submit">
+                注册
+              </button>
+</div>
+</form>
+</section>
+<!-- END: AuthCard -->
+</div>
+<!-- BEGIN: PageFooter -->
+<footer class="w-full flex flex-col items-center text-center mt-auto" data-purpose="terms-and-home-indicator">
+<!-- Terms & Privacy disclaimer -->
+<p class="text-[12px] text-[#8C928B] tracking-tight" id="terms-disclaimer">
+          注册即表示同意<a class="text-[#275945] font-medium hover:underline" href="#">《用户协议》</a>和<a class="text-[#275945] font-medium hover:underline" href="#">《隐私政策》</a>
+</p>
+<!-- iOS Bottom Home Indicator Bar -->
+<div class="w-36 h-1 bg-[#1F2937] rounded-full mt-4 opacity-25"></div>
+</footer>
+<!-- END: PageFooter -->
+</main>
+<!-- END: MainContentArea -->
+</div>
+<!-- END: MobileDeviceContainer -->
+<script>
+  let currentMode = 'register'; // 'login' or 'register'
+
+  const tabLogin = document.getElementById('tab-login');
+  const tabRegister = document.getElementById('tab-register');
+  const submitBtn = document.getElementById('submit-btn');
+  const fieldConfirmWrapper = document.getElementById('field-confirm-wrapper');
+  const passwordRuleHint = document.getElementById('password-rule-hint');
+  const forgotPasswordLink = document.getElementById('forgot-password-link');
+  const termsDisclaimer = document.getElementById('terms-disclaimer');
+  const formGeneralError = document.getElementById('form-general-error');
+  const formGeneralErrorText = document.getElementById('form-general-error-text');
+
+  const phoneInput = document.getElementById('phone-input');
+  const phoneContainer = document.getElementById('phone-container');
+  const phoneError = document.getElementById('phone-error');
+
+  const passwordInput = document.getElementById('password-input');
+  const passwordContainer = document.getElementById('password-container');
+  const passwordError = document.getElementById('password-error');
+
+  const confirmPasswordInput = document.getElementById('confirm-password-input');
+  const confirmPasswordContainer = document.getElementById('confirm-password-container');
+  const confirmPasswordError = document.getElementById('confirm-password-error');
+
+  const togglePasswordBtn = document.getElementById('toggle-password-btn');
+
+  // Trigger shake animation on container
+  function triggerShake(element) {
+    element.classList.remove('animate-shake');
+    void element.offsetWidth; // trigger reflow
+    element.classList.add('animate-shake');
+  }
+
+  // Set Error on specific field
+  function setFieldError(container, errorElement, message) {
+    container.classList.add('input-error');
+    if (message) {
+      const span = errorElement.querySelector('span');
+      if (span) span.textContent = message;
+    }
+    errorElement.classList.remove('hidden');
+    triggerShake(container);
+  }
+
+  // Clear Error on specific field
+  function clearFieldError(container, errorElement) {
+    container.classList.remove('input-error');
+    errorElement.classList.add('hidden');
+  }
+
+  // Show Toast
+  let toastTimer = null;
+  function showToast(message) {
+    const toast = document.getElementById('toast');
+    const toastText = document.getElementById('toast-text');
+    toastText.textContent = message;
+    toast.classList.remove('opacity-0', 'pointer-events-none', '-translate-y-6');
+    toast.classList.add('opacity-100', 'translate-y-0');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => {
+      toast.classList.remove('opacity-100', 'translate-y-0');
+      toast.classList.add('opacity-0', 'pointer-events-none', '-translate-y-6');
+    }, 2800);
+  }
+
+  // Validation functions
+  function validatePhone() {
+    const val = phoneInput.value.trim();
+    if (!val) {
+      setFieldError(phoneContainer, phoneError, '请输入手机号');
+      return false;
+    }
+    // Check standard 11 digits phone pattern starting with 1
+    const phoneRegex = /^1[3-9]\d{9}$/;
+    if (!phoneRegex.test(val)) {
+      setFieldError(phoneContainer, phoneError, '请输入有效的11位手机号');
+      return false;
+    }
+    clearFieldError(phoneContainer, phoneError);
+    return true;
+  }
+
+  function validatePassword() {
+    const val = passwordInput.value;
+    if (!val) {
+      setFieldError(passwordContainer, passwordError, currentMode === 'login' ? '请输入密码' : '请设置密码');
+      return false;
+    }
+    if (currentMode === 'register') {
+      // 6-16 chars, numbers and letters
+      const ruleRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d!@#._-]{6,16}$/;
+      if (val.length < 6 || val.length > 16) {
+        setFieldError(passwordContainer, passwordError, '密码长度须为 6–16 位');
+        return false;
+      }
+      if (!ruleRegex.test(val)) {
+        setFieldError(passwordContainer, passwordError, '须包含字母和数字，可含 !@#._-');
+        return false;
+      }
+    } else {
+      if (val.length < 6) {
+        setFieldError(passwordContainer, passwordError, '密码长度不能少于6位');
+        return false;
+      }
+    }
+    clearFieldError(passwordContainer, passwordError);
+    return true;
+  }
+
+  function validateConfirmPassword() {
+    if (currentMode !== 'register') return true;
+    const val = confirmPasswordInput.value;
+    const pwd = passwordInput.value;
+    if (!val) {
+      setFieldError(confirmPasswordContainer, confirmPasswordError, '请再次输入密码');
+      return false;
+    }
+    if (val !== pwd) {
+      setFieldError(confirmPasswordContainer, confirmPasswordError, '两次输入的密码不一致');
+      return false;
+    }
+    clearFieldError(confirmPasswordContainer, confirmPasswordError);
+    return true;
+  }
+
+  // Clear errors when user types
+  phoneInput.addEventListener('input', () => {
+    if (phoneContainer.classList.contains('input-error')) {
+      clearFieldError(phoneContainer, phoneError);
+    }
+    formGeneralError.classList.add('hidden');
+  });
+
+  passwordInput.addEventListener('input', () => {
+    if (passwordContainer.classList.contains('input-error')) {
+      clearFieldError(passwordContainer, passwordError);
+    }
+    formGeneralError.classList.add('hidden');
+  });
+
+  confirmPasswordInput.addEventListener('input', () => {
+    if (confirmPasswordContainer.classList.contains('input-error')) {
+      clearFieldError(confirmPasswordContainer, confirmPasswordError);
+    }
+  });
+
+  // Blur validation
+  phoneInput.addEventListener('blur', () => {
+    if (phoneInput.value.trim().length > 0) {
+      validatePhone();
+    }
+  });
+
+  passwordInput.addEventListener('blur', () => {
+    if (passwordInput.value.length > 0) {
+      validatePassword();
+    }
+  });
+
+  confirmPasswordInput.addEventListener('blur', () => {
+    if (confirmPasswordInput.value.length > 0) {
+      validateConfirmPassword();
+    }
+  });
+
+  // Toggle mode tabs
+  function switchMode(mode) {
+    currentMode = mode;
+    clearFieldError(phoneContainer, phoneError);
+    clearFieldError(passwordContainer, passwordError);
+    clearFieldError(confirmPasswordContainer, confirmPasswordError);
+    formGeneralError.classList.add('hidden');
+
+    if (mode === 'login') {
+      tabLogin.className = "flex-1 py-2 text-sm font-bold text-white bg-[#275945] text-center rounded-full shadow-sm transition-all";
+      tabRegister.className = "flex-1 py-2 text-sm font-medium text-[#6B7280] text-center rounded-full transition-all";
+      fieldConfirmWrapper.classList.add('hidden');
+      passwordRuleHint.classList.add('hidden');
+      forgotPasswordLink.classList.remove('hidden');
+      passwordInput.placeholder = "请输入登录密码";
+      submitBtn.textContent = "登录";
+      termsDisclaimer.innerHTML = '登录即表示同意<a class="text-[#275945] font-medium hover:underline" href="#">《用户协议》</a>和<a class="text-[#275945] font-medium hover:underline" href="#">《隐私政策》</a>';
+    } else {
+      tabRegister.className = "flex-1 py-2 text-sm font-bold text-white bg-[#275945] text-center rounded-full shadow-sm transition-all";
+      tabLogin.className = "flex-1 py-2 text-sm font-medium text-[#6B7280] text-center rounded-full transition-all";
+      fieldConfirmWrapper.classList.remove('hidden');
+      passwordRuleHint.classList.remove('hidden');
+      forgotPasswordLink.classList.add('hidden');
+      passwordInput.placeholder = "请设置密码";
+      submitBtn.textContent = "注册";
+      termsDisclaimer.innerHTML = '注册即表示同意<a class="text-[#275945] font-medium hover:underline" href="#">《用户协议》</a>和<a class="text-[#275945] font-medium hover:underline" href="#">《隐私政策》</a>';
+    }
+  }
+
+  tabLogin.addEventListener('click', () => switchMode('login'));
+  tabRegister.addEventListener('click', () => switchMode('register'));
+
+  // Toggle Password Visibility
+  let isPasswordVisible = false;
+  togglePasswordBtn.addEventListener('click', () => {
+    isPasswordVisible = !isPasswordVisible;
+    passwordInput.type = isPasswordVisible ? 'text' : 'password';
+    togglePasswordBtn.classList.toggle('text-[#275945]', isPasswordVisible);
+    togglePasswordBtn.classList.toggle('text-[#9CA3AF]', !isPasswordVisible);
+  });
+
+  // Submit Handler
+  submitBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    formGeneralError.classList.add('hidden');
+
+    const isPhoneValid = validatePhone();
+    const isPasswordValid = validatePassword();
+    const isConfirmValid = validateConfirmPassword();
+
+    if (!isPhoneValid || !isPasswordValid || (currentMode === 'register' && !isConfirmValid)) {
+      return;
+    }
+
+    // Interactive Demonstration for Login error simulation
+    if (currentMode === 'login') {
+      // Simulate failed login credential scenario
+      setFieldError(passwordContainer, passwordError, '密码错误，请核对后重试');
+      formGeneralErrorText.textContent = '账号或密码不正确，请重新输入';
+      formGeneralError.classList.remove('hidden');
+      triggerShake(document.querySelector('[data-purpose="auth-card"]'));
+      showToast('账号或密码不正确，请重新输入');
+    } else {
+      // Register success demonstration
+      showToast('注册信息验证通过！');
+    }
+  });
+</script>
+</body></html>

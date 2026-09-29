@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+
+<html lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
+<title>00 · 登录注册</title>
+<!-- Tailwind CSS v3 with forms and container queries -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              DEFAULT: '#275945',
+              dark: '#1F4D3A',
+              light: '#E6EFEA'
+            },
+            canvas: '#F7F6F3',
+            muted: '#8E9590',
+            subtle: '#FAF9F6',
+            cardBorder: '#ECEBE6',
+            inputBorder: '#E8E6DF'
+          },
+          fontFamily: {
+            sans: ['-apple-system', 'BlinkMacSystemFont', '"PingFang SC"', '"Hiragino Sans GB"', '"Microsoft YaHei"', 'sans-serif']
+          }
+        }
+      }
+    };
+  </script>
+<!-- BEGIN: CustomStyles -->
+<style data-purpose="base-layout">
+    body {
+      background-color: #E5E7EB;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    .mobile-frame {
+      width: 390px;
+      height: 844px;
+      background-color: #F7F6F3;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+  </style>
+<style data-purpose="ui-components">
+    input::placeholder {
+      color: #A3A8A2;
+    }
+    input:focus {
+      outline: none;
+      box-shadow: none;
+      border-color: #275945;
+    }
+  </style>
+<!-- END: CustomStyles -->
+</head>
+<body>
+<!-- BEGIN: MobileDeviceContainer -->
+<div class="mobile-frame shadow-2xl relative select-none">
+<!-- BEGIN: StatusBar -->
+<!-- Standard iOS status bar (time 9:41, cellular, wifi, battery) -->
+<header class="w-full h-11 px-7 flex justify-between items-center z-10 shrink-0 text-[#1F2937]" data-purpose="status-bar">
+<span class="text-sm font-semibold tracking-tight">9:41</span>
+<div class="flex items-center space-x-1.5">
+<!-- Cellular Signal Icon -->
+<svg class="w-4 h-3.5 fill-current" viewbox="0 0 17 12">
+<rect height="4" rx="0.5" width="2.5" x="0" y="8"></rect>
+<rect height="6.5" rx="0.5" width="2.5" x="4.5" y="5.5"></rect>
+<rect height="9" rx="0.5" width="2.5" x="9" y="3"></rect>
+<rect height="12" rx="0.5" width="2.5" x="13.5" y="0"></rect>
+</svg>
+<!-- Wifi Icon -->
+<svg class="w-4 h-3.5 fill-current ml-0.5" viewbox="0 0 16 12">
+<path d="M8 2.5C10.6 2.5 13 3.5 14.8 5.2L16 3.9C13.9 1.9 11.1 0.7 8 0.7C4.9 0.7 2.1 1.9 0 3.9L1.2 5.2C3 3.5 5.4 2.5 8 2.5ZM8 6.5C9.7 6.5 11.2 7.2 12.3 8.3L13.5 7.1C12.1 5.7 10.1 4.8 8 4.8C5.9 4.8 3.9 5.7 2.5 7.1L3.7 8.3C4.8 7.2 6.3 6.5 8 6.5ZM8 10C8.8 10 9.5 10.7 9.5 11.5C9.5 12.3 8.8 13 8 13C7.2 13 6.5 12.3 6.5 11.5C6.5 10.7 7.2 10 8 10Z"></path>
+</svg>
+<!-- Battery Icon -->
+<div class="w-6 h-3 border border-current rounded-[4px] p-0.5 flex items-center relative ml-0.5">
+<div class="h-full w-4 bg-current rounded-[1.5px]"></div>
+<div class="absolute -right-1 top-1 w-0.5 h-1 bg-current rounded-r-sm"></div>
+</div>
+</div>
+</header>
+<!-- END: StatusBar -->
+<!-- BEGIN: MainContentArea -->
+<main class="flex-1 px-5 flex flex-col justify-between pt-2 pb-6 overflow-hidden">
+<div>
+<!-- BEGIN: BrandHeader -->
+<!-- App icon, title and brand subtitle -->
+<section class="mt-4 mb-6 px-1 flex flex-col items-center text-center" data-purpose="brand-header">
+<div class="w-[52px] h-[52px] rounded-2xl bg-[#275945] flex items-center justify-center shadow-sm mb-3">
+<!-- Home Icon matching app visual language -->
+<svg class="w-7 h-7 text-white stroke-[2.2] fill-none stroke-current" stroke-linecap="round" stroke-linejoin="round" viewbox="0 0 24 24">
+<path d="M3 10.5L12 3l9 7.5V20a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 20v-9.5z"></path>
+<path d="M9 21.5V12h6v9.5"></path>
+</svg>
+</div>
+<h1 class="text-[22px] font-bold text-[#1F2937] tracking-tight">家庭生活</h1>
+<p class="text-[13px] text-[#78827B] mt-1.5 leading-relaxed tracking-normal">认真生活，也认真记录每一份安心。</p>
+</section>
+<!-- END: BrandHeader -->
+<!-- BEGIN: AuthCard -->
+<section class="bg-white rounded-[22px] p-6 border border-[#ECEBE6] shadow-sm" data-purpose="auth-card">
+<!-- Segmented Control Tabs -->
+<div class="bg-[#ECEAE4] rounded-full p-1 flex mb-6" data-purpose="auth-tabs">
+<button class="flex-1 py-2 text-sm font-medium text-[#6B7280] text-center rounded-full transition-all" type="button">
+              登录
+            </button>
+<button class="flex-1 py-2 text-sm font-bold text-white bg-[#275945] text-center rounded-full shadow-sm transition-all" type="button">
+              注册
+            </button>
+</div>
+<!-- Auth Form Fields -->
+<form class="space-y-4" data-purpose="register-form" onsubmit="event.preventDefault();">
+<!-- Field 1: Phone Number -->
+<div>
+<label class="block text-[13.5px] font-medium text-[#374151] mb-1.5">手机号</label>
+<div class="h-12 bg-[#FAF9F6] border border-[#E8E6DF] rounded-xl px-3.5 flex items-center focus-within:border-[#275945] focus-within:bg-white transition-colors">
+<input class="w-full bg-transparent border-none p-0 text-[#1F2937] text-[15px] focus:ring-0 placeholder-[#A3A8A2]" maxlength="11" placeholder="请输入11位手机号" type="tel"/>
+</div>
+</div>
+<!-- Field 2: Password -->
+<div>
+<label class="block text-[13.5px] font-medium text-[#374151] mb-1.5">密码</label>
+<div class="h-12 bg-[#FAF9F6] border border-[#E8E6DF] rounded-xl px-3.5 flex items-center justify-between focus-within:border-[#275945] focus-within:bg-white transition-colors">
+<input class="w-full bg-transparent border-none p-0 text-[#1F2937] text-[15px] focus:ring-0 placeholder-[#A3A8A2] pr-2" id="password-input" placeholder="请设置密码" type="password"/>
+<!-- Toggle Password Visibility Icon -->
+<button class="text-[#9CA3AF] hover:text-[#6B7280] focus:outline-none p-1 shrink-0" data-purpose="toggle-password" type="button">
+<svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewbox="0 0 24 24">
+<path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" stroke-linecap="round" stroke-linejoin="round"></path>
+<path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</button>
+</div>
+</div>
+<!-- Field 3: Confirm Password -->
+<div>
+<label class="block text-[13.5px] font-medium text-[#374151] mb-1.5">确认密码</label>
+<div class="h-12 bg-[#FAF9F6] border border-[#E8E6DF] rounded-xl px-3.5 flex items-center focus-within:border-[#275945] focus-within:bg-white transition-colors">
+<input class="w-full bg-transparent border-none p-0 text-[#1F2937] text-[15px] focus:ring-0 placeholder-[#A3A8A2]" placeholder="请再次输入密码" type="password"/>
+</div>
+</div>
+<!-- Password Helper Text -->
+<p class="text-[12px] text-[#8C928B] leading-relaxed pt-0.5">
+              6–16 位，由数字和字母组成，也可以包含常见符号（如 ! @ # . _ -）。
+            </p>
+<!-- Submit Action Button -->
+<div class="pt-2">
+<button class="w-full h-12 bg-[#275945] active:bg-[#1F4D3A] text-white font-semibold text-[16px] rounded-xl shadow-sm transition duration-150 flex items-center justify-center tracking-wide" type="submit">
+                注册
+              </button>
+</div>
+</form>
+</section>
+<!-- END: AuthCard -->
+</div>
+<!-- BEGIN: PageFooter -->
+<footer class="w-full flex flex-col items-center text-center mt-auto" data-purpose="terms-and-home-indicator">
+<!-- Terms & Privacy disclaimer -->
+<p class="text-[12px] text-[#8C928B] tracking-tight">
+          注册即表示同意<a class="text-[#275945] font-medium hover:underline" href="#">《用户协议》</a>和<a class="text-[#275945] font-medium hover:underline" href="#">《隐私政策》</a>
+</p>
+<!-- iOS Bottom Home Indicator Bar -->
+<div class="w-36 h-1 bg-[#1F2937] rounded-full mt-4 opacity-25"></div>
+</footer>
+<!-- END: PageFooter -->
+</main>
+<!-- END: MainContentArea -->
+</div>
+<!-- END: MobileDeviceContainer -->
+</body></html>

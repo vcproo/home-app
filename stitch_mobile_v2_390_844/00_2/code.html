@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+
+<html lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
+<title>00 · 登录</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script data-purpose="tailwind-config">
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            forest: '#1F4D3A',
+            'forest-hover': '#173b2c',
+            'page-bg': '#F6F5F2',
+            'card-track': '#EAE8E2',
+            'field-bg': '#F7F6F3',
+          },
+          fontFamily: {
+            sans: ['-apple-system', 'BlinkMacSystemFont', '"PingFang SC"', '"Hiragino Sans GB"', '"Microsoft YaHei"', 'sans-serif'],
+          }
+        }
+      }
+    };
+  </script>
+<style data-purpose="custom-layout">
+    body {
+      background-color: #ECEAE4;
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    /* iOS device container simulation */
+    .iphone-frame {
+      width: 390px;
+      height: 844px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.18), 0 0 0 1px rgba(0, 0, 0, 0.05);
+    }
+    /* Custom removal of native input autofill and outlines */
+    input:focus {
+      outline: none;
+      box-shadow: none;
+    }
+  </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-0 sm:p-4">
+<!-- BEGIN: PhoneContainer -->
+<main class="iphone-frame bg-page-bg relative flex flex-col justify-between overflow-hidden sm:rounded-[48px] select-none text-[#222]">
+<!-- BEGIN: TopSection (Status Bar + Header) -->
+<div class="w-full flex flex-col">
+<!-- BEGIN: StatusBar -->
+<header class="w-full pt-3 px-8 flex justify-between items-center text-black z-20" data-purpose="ios-status-bar">
+<span class="text-[15px] font-semibold tracking-tight">9:41</span>
+<div class="flex items-center space-x-2">
+<!-- Cellular signal -->
+<svg class="w-4 h-3.5 fill-current" viewbox="0 0 17 12">
+<rect height="3.5" rx="0.75" width="2.5" x="0" y="8.5"></rect>
+<rect height="6" rx="0.75" width="2.5" x="4.5" y="6"></rect>
+<rect height="9" rx="0.75" width="2.5" x="9" y="3"></rect>
+<rect height="12" rx="0.75" width="2.5" x="13.5" y="0"></rect>
+</svg>
+<!-- Wifi -->
+<svg class="w-4 h-3.5 fill-current" viewbox="0 0 16 12">
+<path d="M8 2.8C10.7 2.8 13.1 3.9 14.8 5.7L16 4.5C13.9 2.3 11.1 1 8 1C4.9 1 2.1 2.3 0 4.5L1.2 5.7C2.9 3.9 5.3 2.8 8 2.8ZM8 6.4C9.7 6.4 11.3 7.1 12.4 8.3L13.6 7.1C12.1 5.6 10.2 4.6 8 4.6C5.8 4.6 3.9 5.6 2.4 7.1L3.6 8.3C4.7 7.1 6.3 6.4 8 6.4ZM8 10C8.8 10 9.5 10.7 9.5 11.5C9.5 12.3 8.8 13 8 13C7.2 13 6.5 12.3 6.5 11.5C6.5 10.7 7.2 10 8 10Z"></path>
+</svg>
+<!-- Battery -->
+<div class="flex items-center space-x-0.5">
+<div class="w-6 h-3 border border-black rounded-[4px] p-0.5 flex items-center">
+<div class="w-full h-full bg-black rounded-[1.5px]"></div>
+</div>
+<div class="w-0.5 h-1.5 bg-black rounded-r-sm"></div>
+</div>
+</div>
+</header>
+<!-- END: StatusBar -->
+<!-- BEGIN: BrandHeader -->
+<section class="flex flex-col items-center mt-9 px-6 text-center" data-purpose="brand-header">
+<!-- App Logo House Icon -->
+<div class="w-16 h-16 rounded-[22px] bg-forest flex items-center justify-center shadow-sm">
+<svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" viewbox="0 0 24 24">
+<path d="M3 10.5L12 3l9 7.5V20a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+<path d="M9 22V12h6v10"></path>
+</svg>
+</div>
+<!-- App Name -->
+<h1 class="text-[26px] font-bold text-[#17232B] tracking-tight mt-4">家庭生活</h1>
+<!-- App Slogan -->
+<p class="text-[13px] text-[#787D83] mt-2 font-normal tracking-wide">
+          认真生活，也认真记录每一份安心。
+        </p>
+</section>
+<!-- END: BrandHeader -->
+</div>
+<!-- END: TopSection -->
+<!-- BEGIN: FormCardSection -->
+<section class="px-5 w-full my-auto" data-purpose="auth-form-card">
+<div class="bg-white rounded-[28px] p-6 shadow-[0_4px_24px_rgba(0,0,0,0.03)] border border-[#EBE8E1]">
+<!-- BEGIN: SegmentedSwitch -->
+<div class="w-full bg-card-track p-1 rounded-full flex items-center mb-6" data-purpose="tab-switcher">
+<!-- Login (Active) -->
+<button class="w-1/2 py-2.5 rounded-full bg-forest text-white font-medium text-[15px] shadow-sm flex items-center justify-center transition" type="button">
+            登录
+          </button>
+<!-- Register (Inactive) -->
+<button class="w-1/2 py-2.5 rounded-full text-[#6E737B] font-medium text-[15px] flex items-center justify-center hover:text-black transition" type="button">
+            注册
+          </button>
+</div>
+<!-- END: SegmentedSwitch -->
+<!-- BEGIN: LoginForm -->
+<form class="space-y-4" data-purpose="login-inputs" onsubmit="event.preventDefault();">
+<!-- Field 1: Phone -->
+<div>
+<label class="block text-[14px] font-medium text-[#2C3138] mb-2" for="phone-input">手机号</label>
+<div class="relative">
+<input class="w-full bg-field-bg border border-[#E9E7DF] rounded-xl px-4 py-3.5 text-[15px] text-gray-900 placeholder-[#AFB3B8] focus:border-forest focus:ring-1 focus:ring-forest transition" id="phone-input" maxlength="11" placeholder="请输入11位手机号" type="tel"/>
+</div>
+</div>
+<!-- Field 2: Password -->
+<div>
+<label class="block text-[14px] font-medium text-[#2C3138] mb-2" for="password-input">密码</label>
+<div class="relative flex items-center">
+<input class="w-full bg-field-bg border border-[#E9E7DF] rounded-xl px-4 py-3.5 pr-11 text-[15px] text-gray-900 placeholder-[#AFB3B8] focus:border-forest focus:ring-1 focus:ring-forest transition" id="password-input" placeholder="请输入密码" type="password"/>
+<!-- Toggle Password Visibility Icon -->
+<button aria-label="切换显示密码" class="absolute right-3.5 text-[#989FA6] hover:text-[#5F656C] p-1 transition" data-purpose="password-visibility-toggle" id="toggle-password-btn" type="button">
+<!-- Eye Outline SVG -->
+<svg class="w-5 h-5" fill="none" id="eye-icon" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewbox="0 0 24 24">
+<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+<circle cx="12" cy="12" r="3"></circle>
+</svg>
+</button>
+</div>
+</div>
+<!-- Helper Rules Description -->
+<p class="text-[12px] leading-relaxed text-[#8D9299] pt-1">
+            密码为 6–16 位，由数字和字母组成，也可以包含常见符号（如 ! @ # . _ -）。
+          </p>
+<!-- Primary Submit Button -->
+<div class="pt-4">
+<button class="w-full bg-forest active:bg-forest-hover text-white font-semibold text-[16px] py-3.5 rounded-xl shadow-sm transition duration-150 ease-in-out" data-purpose="submit-login-button" type="submit">
+              登录
+            </button>
+</div>
+</form>
+<!-- END: LoginForm -->
+</div>
+</section>
+<!-- END: FormCardSection -->
+<!-- BEGIN: FooterSection -->
+<footer class="w-full pb-3 flex flex-col items-center text-center space-y-4" data-purpose="auth-footer">
+<!-- Switch to Register Link -->
+<div class="text-[13px] text-[#7A7F85]">
+        还没有账号？<button class="text-forest font-medium hover:underline focus:outline-none" type="button">去注册</button>
+</div>
+<!-- iOS Home Indicator -->
+<div class="pt-2 pb-1" data-purpose="ios-home-indicator">
+<div class="w-32 h-1 bg-[#BFBDB8] rounded-full mx-auto"></div>
+</div>
+</footer>
+<!-- END: FooterSection -->
+</main>
+<!-- END: PhoneContainer -->
+<!-- BEGIN: InteractiveScripts -->
+<script data-purpose="password-toggle-script">
+    const toggleBtn = document.getElementById('toggle-password-btn');
+    const passwordInput = document.getElementById('password-input');
+    const eyeIcon = document.getElementById('eye-icon');
+
+    if (toggleBtn && passwordInput && eyeIcon) {
+      toggleBtn.addEventListener('click', () => {
+        const isPassword = passwordInput.type === 'password';
+        passwordInput.type = isPassword ? 'text' : 'password';
+        
+        if (isPassword) {
+          // Change icon to eye-off
+          eyeIcon.innerHTML = `
+            <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+            <line x1="1" y1="1" x2="23" y2="23"></line>
+          `;
+        } else {
+          // Reset to normal eye
+          eyeIcon.innerHTML = `
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+            <circle cx="12" cy="12" r="3"></circle>
+          `;
+        }
+      });
+    }
+  </script>
+<!-- END: InteractiveScripts -->
+</body></html>
