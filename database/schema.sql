@@ -2,6 +2,14 @@
 
 SET NAMES utf8mb4;
 
+CREATE TABLE app_address_photos (
+  id CHAR(32) PRIMARY KEY,
+  family_id INT NOT NULL,
+  image MEDIUMBLOB NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  INDEX (family_id)
+) ENGINE=InnoDB;
+
 CREATE TABLE `accounts` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `family_id` int(11) NOT NULL,

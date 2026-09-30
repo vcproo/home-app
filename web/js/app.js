@@ -309,6 +309,8 @@ function chip(name, bg, color) {
 }
 function catChip(name) {
   const look = CAT_LOOK[name] || ["more", "#F1F0EC", "#5C6560"];
+  if (look[3])
+    return `<span class="glyph" style="background:${look[1]}"><img class="category-custom-image" data-address-photo="${look[3]}" alt="${esc(name)}图标"/></span>`;
   return chip(look[0], look[1], look[2]);
 }
 
@@ -606,7 +608,7 @@ function screenAssetHub() {
 
 function screenAssets() {
   const personal = personalTotal(),
-    family = personal + 225220;
+    family = personal;
   const m = (n) => (state.hideAmounts ? "••••••" : money(n));
   const rows = state.accounts.filter(
     (a) => !state.searchQuery || a.name.includes(state.searchQuery),
@@ -694,7 +696,7 @@ function screenCategoryAdd() {
 
 function emptyAccountPage() {
   return page(
-    `${back("添加记录")}<p class="empty-ranking sub">先添加一个账户，再记录收支。</p><button class="btn" data-go="account-form">添加账户</button>`,
+    `${back("先添加账户")}<p class="empty-ranking sub">记账需要一个收支账户。保存账户后，将自动返回继续填写。</p><button class="btn" data-go="account-form">添加账户并继续</button>`,
   );
 }
 
@@ -862,14 +864,17 @@ function screenAddresses() {
       !state.searchQuery || (a.name + a.detail).includes(state.searchQuery),
   );
   return page(
-    `${back("地址管理", '<button class="icon-btn" id="search" aria-label="搜索地址">' + svg("search", 20) + "</button>")}${searchField()}<div class="group">常用地址</div><div class="list-card">${rows.map((a, i) => `<div class="tx address-row">${chip(i ? "building" : "house", i ? "#f3ecf8" : "#eaf2ec", i ? "#a389b7" : "#729780")}<div class="grow"><div class="title">${esc(a.name)}${a.def ? '<span class="tag">默认</span>' : ""}</div><div class="sub">${esc(a.detail).replace(/\n/g, "<br/>")}</div></div><button class="nav-btn" data-nav="${a.id}">${svg("navigation", 13)}导航</button></div>`).join("")}</div>${fab("address-add")}`,
+    `${back("地址管理", '<button class="icon-btn" id="search" aria-label="搜索地址">' + svg("search", 20) + "</button>")}${searchField()}<div class="group">常用地址</div><div class="list-card">${rows.map((a, i) => `<div class="tx address-row">${chip(i ? "building" : "house", i ? "#f3ecf8" : "#eaf2ec", i ? "#a389b7" : "#729780")}<div class="grow"><button class="address-edit" data-address-edit="${a.id}" aria-label="编辑${esc(a.name)}"><span class="title">${esc(a.name)}</span></button>${a.photos?.length ? `<span class="sub"> · ${a.photos.length} 张图片</span>` : ""}${a.def ? '<span class="tag">默认</span>' : ""}<div class="sub">${esc(a.detail).replace(/\n/g, "<br/>")}</div></div><button class="nav-btn" data-nav="${a.id}">${svg("navigation", 13)}导航</button></div>`).join("")}</div>${fab("address-add")}`,
     "mine",
   );
 }
 
 function screenAddressAdd() {
+  const d = state.draft;
+  d.photos ||= [];
+  d.addressSession ||= crypto.randomUUID();
   return page(
-    `${back("添加地址", "", true)}<div class="form-card">${inputField("地址名称", "ad-name", "例如：家、公司")}<label class="form-field"><span>详细地址</span><textarea id="ad-detail" placeholder="请输入省市区、街道和门牌号"></textarea></label><div class="kv"><div><div class="k">导航位置</div><div class="sub">通过地图确认导航位置</div></div><button class="nav-btn" id="pick-map" style="background:var(--forest-soft);border:0">${svg("navigation", 14)}地图选点</button></div></div><div class="map"><span class="pin">${svg("pin", 20)}</span><span>点击上方按钮选择导航位置</span></div>${action("保存地址", "save-address")}`,
+    `${back(d.addressId ? "编辑地址" : "添加地址", "", true)}<div class="form-card">${inputField("地址名称", "ad-name", "例如：家、公司", d.adName || "", 'maxlength="80"')}<label class="form-field"><span>详细地址</span><textarea id="ad-detail" maxlength="1000" placeholder="请输入省市区、街道和门牌号">${esc(d.adDetail || "")}</textarea></label><div class="kv"><span class="sub">导航位置按详细地址查询</span><button class="nav-btn" id="pick-map">${svg("navigation", 14)}地图查询</button></div></div>${typeof AddressPhotos !== "undefined" ? AddressPhotos.form() : ""}${action("保存地址", "save-address")}`,
   );
 }
 
@@ -960,6 +965,8 @@ function render() {
   bindHealth();
   bindModelSettings();
   bindFoodPhoto();
+  if (typeof CategoryIcons !== "undefined") CategoryIcons.bind();
+  if (typeof AddressPhotos !== "undefined") AddressPhotos.bind();
   if (typeof CloudSync !== "undefined") CloudSync.bind();
   enhancePickers();
   const dialogs = [...document.querySelectorAll('[role="dialog"]')];
@@ -1382,6 +1389,7 @@ function bind() {
   on("[data-icon]", (el) => {
     captureDraft();
     state.draft.catIcon = el.dataset.icon;
+    state.draft.customIcon = null;
     render();
   });
   on("[data-color]", (el) => {
@@ -1418,6 +1426,18 @@ function bind() {
   save("save-account", saveAccount);
   save("save-house", saveHouseRow);
   save("save-address", saveAddressRow);
+  on("[data-address-edit]", (el) => {
+    const a = state.addresses.find(
+      (a) => a.id === Number(el.dataset.addressEdit),
+    );
+    if (a)
+      go("address-add", {
+        addressId: a.id,
+        adName: a.name,
+        adDetail: a.detail,
+        photos: [...(a.photos || [])],
+      });
+  });
   save("save-weight", saveWeightRow);
   document
     .getElementById("w-value")
@@ -1765,6 +1785,7 @@ function saveCategory(input) {
     state.categories[kind].push(name);
   const color = state.draft.catColor || "#d45e5c";
   CAT_LOOK[name] = [state.draft.catIcon || "fork", color + "18", color];
+  if (state.draft.customIcon) CAT_LOOK[name].push(state.draft.customIcon);
   state.categoryKind = kind;
   go("categories");
   return true;
@@ -1813,8 +1834,9 @@ function saveAccount() {
     found.balance = balance;
     found.counted = d.counted;
   } else {
+    d.id = Date.now();
     state.accounts.push({
-      id: Date.now(),
+      id: d.id,
       name: d.name,
       type: d.type,
       bank: d.bank,
@@ -1823,8 +1845,34 @@ function saveAccount() {
       counted: d.counted,
     });
   }
-  go("accounts");
-  toast("已保存账户");
+  finishAccountSave(d.id);
+}
+function finishAccountSave(accountId) {
+  const parent = state.navStack?.at(-1);
+  persistState();
+  if (
+    parent &&
+    ["ledger", "renqing-add", "account-detail", "accounts"].includes(
+      parent.route,
+    )
+  ) {
+    if (["ledger", "renqing-add"].includes(parent.route))
+      parent.draft.accountId = accountId;
+    appBack();
+    toast(
+      ["ledger", "renqing-add"].includes(state.route)
+        ? "账户已添加，请继续填写记录"
+        : "已保存账户",
+    );
+  } else {
+    // Replace the completed form instead of pushing it into the back stack.
+    state.route = "accounts";
+    state.draft = {};
+    state.formValues = {};
+    state.formError = "";
+    render();
+    toast("已保存账户");
+  }
 }
 function saveHouseRow() {
   const name = field("h-name");
@@ -1855,12 +1903,25 @@ function saveAddressRow() {
     render();
     return;
   }
-  state.addresses.push({
-    id: Date.now(),
+  if (typeof AddressPhotos !== "undefined" && AddressPhotos.busy) {
+    toast("请等待图片上传完成");
+    return;
+  }
+  const existing = state.addresses.find((a) => a.id === state.draft.addressId);
+  if (state.draft.addressId && !existing) {
+    toast("地址已不存在，请返回重新加载");
+    return;
+  }
+  const value = {
+    ...(existing || {}),
+    id: existing?.id || Date.now(),
     name,
     detail: field("ad-detail"),
-    def: false,
-  });
+    def: existing?.def || false,
+    photos: [...(state.draft.photos || [])],
+  };
+  if (existing) Object.assign(existing, value);
+  else state.addresses.push(value);
   go("addresses");
 }
 function saveWeightRow() {
@@ -1961,6 +2022,12 @@ function categoryEditor(edit = false) {
   ];
   const chosen = state.draft.catIcon || (edit ? original[0] : "fork"),
     color = state.draft.catColor || (edit ? original[2] : "#d45e5c");
+  const custom =
+    state.draft.customIcon !== undefined
+      ? state.draft.customIcon
+      : edit
+        ? original[3]
+        : null;
   const icons = [
     "fork",
     "bag",
@@ -1981,8 +2048,8 @@ function categoryEditor(edit = false) {
     "#4d7bb1",
     "#9064ae",
   ];
-  return page(`${back(edit ? "编辑分类" : "添加分类")}<div class="preview" style="background:${color}15;color:${color}">${svg(chosen, 34)}</div><div class="form-card"><div class="kv"><span>类型</span><div class="seg" style="width:130px"><button data-new-cat="expense" class="${kind === "expense" ? "on" : ""}">支出</button><button data-new-cat="income" class="${kind === "income" ? "on" : ""}">收入</button></div></div><label class="kv"><span>分类名称</span><input id="cat-name" value="${esc(name)}" maxlength="20" placeholder="例如：餐饮"/></label></div>
-  <div class="group">选择图标</div><div class="card icon-grid" style="--chosen:${color}">${icons.map((n) => `<button data-icon="${n}" aria-label="图标 ${n}" aria-pressed="${n === chosen}" class="${n === chosen ? "on" : ""}">${svg(n, 23)}</button>`).join("")}</div>
+  return page(`${back(edit ? "编辑分类" : "添加分类")}<div class="preview" style="background:${color}15;color:${color}">${custom ? `<img class="category-custom-image" data-address-photo="${custom}" alt="自定义图标"/>` : svg(chosen, 34)}</div><div class="form-card"><div class="kv category-type-row"><span>类型</span><div class="seg"><button data-new-cat="expense" class="${kind === "expense" ? "on" : ""}">支出</button><button data-new-cat="income" class="${kind === "income" ? "on" : ""}">收入</button></div></div><label class="kv"><span>分类名称</span><input id="cat-name" value="${esc(name)}" maxlength="20" placeholder="例如：餐饮"/></label></div>
+  <div class="group">选择图标</div><button class="btn ghost" id="upload-category-icon">${custom ? "更换自定义图标" : "上传自定义图标"}</button><input type="file" id="category-icon-file" accept="image/jpeg,image/png,image/webp" hidden/><p class="sub">上传后裁切为方形；也可选择下方内置图标。</p><div class="card icon-grid" style="--chosen:${color}">${icons.map((n) => `<button data-icon="${n}" aria-label="图标 ${n}" aria-pressed="${n === chosen}" class="${n === chosen ? "on" : ""}">${svg(n, 23)}</button>`).join("")}</div>
   <div class="group">选择颜色</div><div class="card colors">${colors.map((c) => `<button data-color="${c}" aria-label="颜色 ${c}" aria-pressed="${c === color}" class="${c === color ? "on" : ""}" style="background:${c}"></button>`).join("")}</div>
   ${edit ? '<button class="btn danger" style="margin-top:24px" id="delete-category">删除此分类</button>' : ""}${action(edit ? "保存修改" : "保存分类", edit ? "save-category-edit" : "save-category")}`);
 }
@@ -2097,6 +2164,9 @@ function captureDraft() {
     state.draft.account = readAccountDraft();
 }
 function appBack() {
+  if (typeof CategoryIcons !== "undefined" && CategoryIcons.close()) return;
+  if (typeof AddressPhotos !== "undefined" && AddressPhotos.closeViewer())
+    return;
   if (!state.modal && state.route === "food-photo") {
     rememberFoodEdits();
     cancelFoodRequest();
@@ -2298,6 +2368,9 @@ function saveCategoryEdit() {
   const look = CAT_LOOK[old] || ["fork", "#fdebea", "#d45e5c"];
   const color = state.draft.catColor || look[2];
   CAT_LOOK[name] = [state.draft.catIcon || look[0], color + "18", color];
+  const custom =
+    state.draft.customIcon !== undefined ? state.draft.customIcon : look[3];
+  if (custom) CAT_LOOK[name].push(custom);
   state.ledger.forEach((r) => {
     if (r.category === old) r.category = name;
   });
@@ -2347,6 +2420,9 @@ if (typeof module !== "undefined" && module.exports) {
     sortCategories,
     saveCategory,
     screenCategories,
+    screenAssets,
+    finishAccountSave,
+    appBack,
     screenCategoryAdd,
     allLedgerRows,
     selectedPeriodRows,

@@ -32,6 +32,9 @@ def schema():
         HomeStore(conn).ensure_schema()
         with conn.cursor() as cur:
             for sql in [
+                '''CREATE TABLE IF NOT EXISTS app_address_photos (
+                    id CHAR(32) PRIMARY KEY, family_id INT NOT NULL, image MEDIUMBLOB NOT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, INDEX(family_id)) ENGINE=InnoDB''',
                 '''CREATE TABLE IF NOT EXISTS app_sessions (
                     token_hash CHAR(64) PRIMARY KEY, user_id INT NOT NULL,
                     expires_at DATETIME NOT NULL, INDEX(user_id)) ENGINE=InnoDB''',
@@ -143,7 +146,8 @@ def validate_data(data):
     for names in data['categories'].values():
         if not isinstance(names,list) or any(not isinstance(n,str) or not n.strip() or len(n)>40 for n in names):raise ApiError('分类名称无效')
     for look in data['categoryLooks'].values():
-        if not isinstance(look,list) or len(look)!=3 or not isinstance(look[0],str) or not re.fullmatch(r'[a-z-]{1,40}',look[0]) or any(not isinstance(c,str) or not re.fullmatch(r'#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?',c) for c in look[1:]):raise ApiError('分类样式无效')
+        if not isinstance(look,list) or len(look) not in (3,4) or not isinstance(look[0],str) or not re.fullmatch(r'[a-z-]{1,40}',look[0]) or any(not isinstance(c,str) or not re.fullmatch(r'#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?',c) for c in look[1:3]):raise ApiError('分类样式无效')
+        if len(look)==4 and (not isinstance(look[3],str) or not re.fullmatch(r'[a-f0-9]{32}',look[3])):raise ApiError('自定义图标编号无效')
     for collection in ('ledger','renqing','accounts','houses','addresses'):
         ids=set()
         for row in data[collection]:
@@ -157,6 +161,9 @@ def validate_data(data):
     account_ids={a['id'] for a in data['accounts']}
     for row in data['accounts']:
         if not isinstance(row.get('balance'),(float,int)) or isinstance(row.get('balance'),bool):raise ApiError('账户余额无效')
+    for row in data['addresses']:
+        photos=row.get('photos',[])
+        if not isinstance(photos,list) or len(photos)>9 or len(set(str(p) for p in photos))!=len(photos) or any(not isinstance(p,str) or not re.fullmatch(r'[a-f0-9]{32}',p) for p in photos):raise ApiError('每个地址最多保存9张图片，图片编号不能重复')
     for row in data['ledger']+data['renqing']:
         if not isinstance(row.get('amount'),(float,int)) or isinstance(row['amount'],bool) or not 0<row['amount']<=10**12:raise ApiError('流水金额无效')
         if row.get('accountId') not in account_ids:raise ApiError('流水账户不存在')
@@ -195,6 +202,9 @@ def write_data(conn,uid,body):
             if receipt[0]!=signature:raise ApiError('请求编号已用于其他修改',409)
             conn.commit();return json.loads(receipt[1])
         if body.get('familyId')!=member['familyId']:raise ApiError('家庭已变更，请重新加载',409)
+        for photo in ({p for a in data['addresses'] for p in a.get('photos',[])} | {v[3] for v in data['categoryLooks'].values() if len(v)==4}):
+            cur.execute('SELECT id FROM app_address_photos WHERE id=%s AND family_id=%s',(photo,member['familyId']))
+            if not cur.fetchone():raise ApiError('地址图片不存在或无权访问，请重新上传')
         revisions={}
         for scope,owner,keys in [('family',member['familyId'],FAMILY_KEYS),('personal',uid,PERSONAL_KEYS)]:
             column='family_id' if scope=='family' else 'user_id'

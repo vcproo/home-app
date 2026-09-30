@@ -15,7 +15,7 @@ try:
             cur.execute(f'DELETE FROM {table} WHERE user_id=%s',(uid,))
         cur.execute('DELETE FROM users WHERE id=%s',(uid,))
         for fid in families:
-            for table in ('app_family_data','invite_codes'):
+            for table in ('app_address_photos','app_family_data','invite_codes'):
                 cur.execute(f'DELETE FROM {table} WHERE family_id=%s',(fid,))
             cur.execute('DELETE FROM families WHERE id=%s',(fid,))
     conn.commit();print('Disposable smoke-test account removed; other data untouched.')

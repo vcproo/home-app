@@ -24,7 +24,7 @@ python -m unittest tests.test_shipped_rules -v
 ./tools/build-android.ps1 -JavaHome $env:JAVA_HOME
 ```
 
-构建前运行 `python tools/setup-local-tls.py` 生成本机调试证书。输出：根目录 `app-debug.apk` 和 `artifacts/family-life-mobile-v2-1.5.0.apk`。这是开发签名包，正式发布仍需配置生产签名。
+构建前运行 `python tools/setup-local-tls.py` 生成本机调试证书。输出：根目录 `app-debug.apk` 和 `artifacts/family-life-mobile-v2-1.5.5.apk`。这是开发签名包，正式发布仍需配置生产签名。
 
 启动本地对照服务：
 
@@ -42,6 +42,10 @@ python -m http.server 4173 --bind 127.0.0.1
 - 正式客户端通过 HTTPS 后端保存 MySQL 数据，Android 会话及待同步草稿本机加密；旧 localStorage 保留供首次导入。设计预览继续使用独立示例数据。备份通过 Android 文档选择器导出，邀请复制和分享使用系统能力。
 - Android 状态栏、导航栏和输入法分别处理；装饰图与字体均从 APK 本地加载。
 - 旧前端源码及旧 APK 保留在 `backups/before-stitch-restoration/`。
+
+## 地址图片（1.5.1）
+
+地址列表可进入编辑，修改名称、详细地址及图片。每个地址支持最多9张图片，可多选上传、逐张移除和放大查看。图片通过家庭权限验证存入 MySQL，上传后点击保存地址完成关联，重启后可继续查看。
 
 ## 当前边界
 

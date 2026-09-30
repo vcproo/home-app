@@ -1,5 +1,16 @@
 const assert = require("node:assert/strict");
 const app = require("../web/js/app.js");
+// Assert the displayed family total, not only the underlying sum.
+const originalAccounts = app.state.accounts;
+app.state.accounts = [];
+assert.match(app.screenAssets(), /class="hero">0\.00<\/div>/);
+app.state.accounts = [
+  { id: 1, name: "计入", balance: 100, counted: true },
+  { id: 2, name: "不计入", balance: 500, counted: false },
+  { id: 3, name: "负余额", balance: -20, counted: true },
+];
+assert.match(app.screenAssets(), /class="hero">80\.00<\/div>/);
+app.state.accounts = originalAccounts;
 const account = app.state.accounts[0];
 const initial = account.balance;
 const count = app.state.ledger.length;

@@ -43,7 +43,7 @@ else:
                 if table=='app_sessions':continue
                 cur.execute('SELECT * FROM `'+table+'`');columns=[d[0] for d in cur.description]
                 for row in cur.fetchall():
-                    data.append('INSERT INTO `'+table+'` ('+','.join('`'+c+'`' for c in columns)+') VALUES ('+','.join(conn.escape(v) for v in row)+');');count+=1
+                    data.append('INSERT INTO `'+table+'` ('+','.join('`'+c+'`' for c in columns)+') VALUES ('+','.join("X'"+v.hex()+"'" if isinstance(v,bytes) else conn.escape(v) for v in row)+');');count+=1
         data.append('COMMIT;')
     finally:conn.rollback();conn.close()
     schema_text='\n\n'.join(schema)+'\n'

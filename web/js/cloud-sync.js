@@ -23,6 +23,77 @@ const CloudSync = (() => {
     token = "",
     counter = 0;
   let defaultLooks = null;
+  let refreshing = false,
+    lastRefresh = 0;
+  const sharedPages = new Set([
+    "home",
+    "assets",
+    "accounts",
+    "categories",
+    "renqing",
+    "houses",
+    "addresses",
+    "members",
+    "invite",
+    "stats",
+    "ledger-all",
+    "ledger-day",
+    "category-flow",
+  ]);
+  function canRefresh() {
+    return (
+      user &&
+      !dirty &&
+      !saving &&
+      !busy &&
+      !failure &&
+      !state.modal &&
+      sharedPages.has(state.route) &&
+      !document.hidden &&
+      !["INPUT", "TEXTAREA", "SELECT"].includes(document.activeElement?.tagName)
+    );
+  }
+  async function syncShared() {
+    if (refreshing || !canRefresh() || Date.now() - lastRefresh < 2000) return;
+    refreshing = true;
+    lastRefresh = Date.now();
+    const generation = epoch,
+      owner = user.id,
+      family = user.familyId,
+      baseline = JSON.stringify(snapshot());
+    try {
+      const response = await request("/api/data");
+      if (
+        generation !== epoch ||
+        !canRefresh() ||
+        user.id !== owner ||
+        user.familyId !== family ||
+        response.user.familyId !== family ||
+        JSON.stringify(snapshot()) !== baseline
+      )
+        return;
+      const changed =
+        response.familyRevision !== revisions.familyRevision ||
+        response.personalRevision !== revisions.personalRevision ||
+        JSON.stringify(response.data.members) !==
+          JSON.stringify(state.members) ||
+        response.data.invite !== state.invite;
+      if (!changed) return;
+      apply(response.data);
+      user = response.user;
+      revisions = {
+        familyRevision: response.familyRevision,
+        personalRevision: response.personalRevision,
+      };
+      acknowledged = JSON.stringify(snapshot());
+      storeCache();
+      render();
+    } catch (_) {
+      /* A read failure must not discard or block local edits. Retry on next foreground tick. */
+    } finally {
+      refreshing = false;
+    }
+  }
   const pending = new Map();
   const native = () => window.AndroidBridge?.backendRequest;
   function endpoint() {
@@ -347,6 +418,7 @@ const CloudSync = (() => {
   }
   function bind() {
     status();
+    syncShared();
     const on = (id, fn) =>
       document.getElementById(id)?.addEventListener("click", async () => {
         if (busy) return;
@@ -460,8 +532,17 @@ const CloudSync = (() => {
   }
   window.addEventListener("online", () => {
     if (dirty && !failure) pump();
+    syncShared();
   });
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) {
+      lastRefresh = 0;
+      syncShared();
+    }
+  });
+  setInterval(syncShared, 10000);
   return {
+    syncShared,
     boot,
     empty,
     authenticate,

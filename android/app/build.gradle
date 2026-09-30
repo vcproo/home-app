@@ -10,8 +10,8 @@ android {
         applicationId "com.jiatshenghuo.life"
         minSdk 24
         targetSdk 34
-        versionCode 8
-        versionName "1.5.0"
+        versionCode 13
+        versionName "1.5.5"
         testInstrumentationRunner project.findProperty("smokeRunner") ?: "com.jiatshenghuo.life.HealthSmokeInstrumentation"
     }
 

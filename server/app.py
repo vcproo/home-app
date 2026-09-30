@@ -13,6 +13,10 @@ from werkzeug.exceptions import HTTPException
 from domain.rules import DomainError
 from store.mysql_store import connect, HomeStore
 from server import database as db
+import base64
+import io
+import secrets
+from PIL import Image, ImageOps
 
 ROOT=Path(__file__).resolve().parents[1]
 app=Flask(__name__, static_folder=None)
@@ -69,7 +73,7 @@ def throttle():
 @app.get('/api/health')
 def health():
     with g.conn.cursor() as cur:cur.execute('SELECT 1')
-    return jsonify(ok=True,storage='mysql',version='1.5.0')
+    return jsonify(ok=True,storage='mysql',version='1.5.4')
 
 @app.post('/api/auth/<action>')
 def auth(action):
@@ -91,6 +95,41 @@ def logout():
 
 @app.get('/api/data')
 def load():return jsonify(db.read_data(g.conn,g.uid))
+
+@app.post('/api/address-photos')
+def upload_address_photo():
+    value=body().get('image','')
+    if not isinstance(value,str) or not value.startswith(('data:image/jpeg;base64,','data:image/png;base64,','data:image/webp;base64,')):raise db.ApiError('请选择 JPG、PNG 或 WebP 图片')
+    try:
+        raw=base64.b64decode(value.split(',',1)[1],validate=True)
+        if len(raw)>3*1024*1024:raise ValueError()
+        with Image.open(io.BytesIO(raw)) as original:
+            if original.width*original.height>24000000:raise ValueError()
+            original.load();picture=ImageOps.exif_transpose(original).convert('RGB');picture.thumbnail((1280,1280))
+            out=io.BytesIO();picture.save(out,'JPEG',quality=82);encoded=out.getvalue()
+    except Exception:raise db.ApiError('图片无法读取或过大，请换一张图片')
+    member=db.membership(g.conn,g.uid,True)
+    with g.conn.cursor() as cur:
+        # Bound storage for abandoned uploads; never remove photos still in address records.
+        cur.execute('SELECT payload FROM app_family_data WHERE family_id=%s FOR UPDATE',(member['familyId'],))
+        family=json.loads(cur.fetchone()[0]);used={p for a in family.get('addresses',[]) for p in a.get('photos',[])} | {v[3] for v in family.get('categoryLooks',{}).values() if len(v)==4}
+        cur.execute('SELECT id FROM app_address_photos WHERE family_id=%s AND created_at<UTC_TIMESTAMP()-INTERVAL 7 DAY',(member['familyId'],))
+        for row in cur.fetchall():
+            if row[0] not in used:cur.execute('DELETE FROM app_address_photos WHERE id=%s',(row[0],))
+        cur.execute('SELECT COALESCE(SUM(OCTET_LENGTH(image)),0) FROM app_address_photos WHERE family_id=%s',(member['familyId'],))
+        if cur.fetchone()[0]+len(encoded)>200*1024*1024:raise db.ApiError('家庭图片存储已达200MB，请先移除不需要的图片')
+        photo_id=secrets.token_hex(16)
+        cur.execute('INSERT INTO app_address_photos(id,family_id,image) VALUES(%s,%s,%s)',(photo_id,member['familyId'],encoded))
+    g.conn.commit()
+    return jsonify(id=photo_id,image='data:image/jpeg;base64,'+base64.b64encode(encoded).decode())
+
+@app.get('/api/address-photos/<photo_id>')
+def read_address_photo(photo_id):
+    member=db.membership(g.conn,g.uid)
+    with g.conn.cursor() as cur:
+        cur.execute('SELECT image FROM app_address_photos WHERE id=%s AND family_id=%s',(photo_id,member['familyId']));row=cur.fetchone()
+    if not row:raise db.ApiError('图片不存在或无权访问',404)
+    return jsonify(image='data:image/jpeg;base64,'+base64.b64encode(row[0]).decode())
 
 @app.put('/api/data')
 def save():return jsonify(db.write_data(g.conn,g.uid,body()))

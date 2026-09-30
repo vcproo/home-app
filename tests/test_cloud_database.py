@@ -25,7 +25,7 @@ class DatabaseIntegration(unittest.TestCase):
                         cur.execute(f'DELETE FROM {table} WHERE user_id=%s',(uid,))
                     cur.execute('DELETE FROM users WHERE id=%s',(uid,))
                 for fid in self.families:
-                    for table in ('app_family_data','invite_codes'):
+                    for table in ('app_address_photos','app_family_data','invite_codes'):
                         cur.execute(f'DELETE FROM {table} WHERE family_id=%s',(fid,))
                     cur.execute('DELETE FROM families WHERE id=%s',(fid,))
             conn.commit()
@@ -48,6 +48,29 @@ class DatabaseIntegration(unittest.TestCase):
         self.assertEqual(self.client.post('/api/auth/register',json={'phone':[], 'password':None}).status_code,400)
         self.assertEqual(self.call(self.a,'POST','/api/logout',{}).status_code,200)
         self.assertEqual(self.call(self.a,'GET','/api/data').status_code,401)
+
+    def test_address_photos_and_edit(self):
+        from PIL import Image
+        import io,base64
+        out=io.BytesIO();Image.new('RGB',(24,24),'green').save(out,'PNG')
+        image='data:image/png;base64,'+base64.b64encode(out.getvalue()).decode()
+        ids=[]
+        for i in range(2):
+            result=self.call(self.a,'POST','/api/address-photos',{'image':image});self.assertEqual(result.status_code,200,result.json);ids.append(result.json['id'])
+        p=self.payload(self.a);p['data']['addresses']=[dict(id=10,name='家',detail='原地址',photos=ids)]
+        p['data']['categoryLooks']['餐饮']=['custom','#ffffff','#123456',ids[0]]
+        self.assertEqual(self.call(self.a,'PUT','/api/data',p).status_code,200)
+        latest=self.call(self.a,'GET','/api/data').json
+        self.assertEqual(latest['data']['addresses'][0]['photos'],ids)
+        p=self.payload(latest);p['data']['addresses'][0].update(name='新名称',detail='新地址',photos=ids[1:])
+        self.assertEqual(self.call(self.a,'PUT','/api/data',p).status_code,200)
+        self.assertEqual(self.call(self.a,'GET','/api/address-photos/'+ids[0]).status_code,200)
+        self.assertEqual(self.call(self.b,'GET','/api/address-photos/'+ids[0]).status_code,404)
+        p=self.payload(self.b);p['data']['addresses']=[dict(id=1,name='越权',detail='地址',photos=ids)]
+        self.assertEqual(self.call(self.b,'PUT','/api/data',p).status_code,400)
+        p=self.payload(self.b);p['data']['categoryLooks']['餐饮']=['custom','#ffffff','#123456',ids[0]]
+        self.assertEqual(self.call(self.b,'PUT','/api/data',p).status_code,400)
+        self.assertEqual(self.call(self.a,'POST','/api/address-photos',{'image':'data:image/png;base64,bad'}).status_code,400)
 
     def test_complete_roundtrip_and_restart(self):
         p=self.payload(self.a);d=p['data']
@@ -87,6 +110,42 @@ class DatabaseIntegration(unittest.TestCase):
         self.assertEqual(self.call(self.a,'PUT','/api/data',p).status_code,200)
         other=self.call(self.b,'GET','/api/data').json
         self.assertEqual(other['data']['addresses'][0]['name'],'共有地址');self.assertIsNone(other['data']['health'][0]['weight'])
+
+    def test_all_requested_modules_shared_bidirectionally(self):
+        import io,base64
+        from PIL import Image
+        third=self.register()
+        joined=self.call(self.b,'POST','/api/family/join',{'code':self.a['data']['invite']})
+        self.assertEqual(joined.status_code,200)
+        p=self.payload(self.a)
+        p['data']['accounts']=[dict(id=1,name='家庭账户',balance=100,counted=True)]
+        p['data']['categories']['expense'].append('家庭分类')
+        p['data']['categoryLooks']['家庭分类']=['gift','#ffffff','#123456']
+        p['data']['renqing']=[dict(id=1,name='亲友',amount=20,side='out',accountId=1)]
+        p['data']['houses']=[dict(id=1,name='家庭住房',water='123')]
+        p['data']['addresses']=[dict(id=1,name='家庭地址',detail='原地址')]
+        picture=io.BytesIO();Image.new('RGB',(8,8),'blue').save(picture,'PNG')
+        media=self.call(self.a,'POST','/api/address-photos',{'image':'data:image/png;base64,'+base64.b64encode(picture.getvalue()).decode()}).json['id']
+        p['data']['addresses'][0]['photos']=[media]
+        p['data']['categoryLooks']['家庭分类']=['custom','#ffffff','#123456',media]
+        p['data']['health'][0]['weight']=75
+        self.assertEqual(self.call(self.a,'PUT','/api/data',p).status_code,200)
+        member=self.call(self.b,'GET','/api/data').json
+        self.assertEqual(self.call(self.b,'GET','/api/address-photos/'+media).status_code,200)
+        self.assertEqual(self.call(third,'GET','/api/address-photos/'+media).status_code,404)
+        for k in ('categories','categoryLooks','renqing','houses','addresses'):self.assertEqual(member['data'][k],p['data'][k],k)
+        edited=self.payload(member)
+        edited['data']['categories']['income'].append('共同收入')
+        edited['data']['renqing'][0]['name']='成员修改的亲友'
+        edited['data']['houses'][0]['water']='456'
+        edited['data']['addresses'][0]['detail']='成员修改的地址'
+        edited['data']['health'][0]['weight']=60
+        self.assertEqual(self.call(self.b,'PUT','/api/data',edited).status_code,200)
+        admin=self.call(self.a,'GET','/api/data').json
+        for k in ('categories','categoryLooks','renqing','houses','addresses'):self.assertEqual(admin['data'][k],edited['data'][k],k)
+        self.assertEqual(admin['data']['health'][0]['weight'],75)
+        outsider=self.call(third,'GET','/api/data').json
+        for k in ('renqing','houses','addresses'):self.assertEqual(outsider['data'][k],[])
 
     def test_validation_and_backup_isolation(self):
         p=self.payload(self.a);p['data']['categories']['expense']=[{}]

@@ -2102,3 +2102,146 @@ button:disabled {
   display: block;
   margin-top: 18px;
 }
+.address-edit {
+  text-align: left;
+  padding: 8px 0;
+  color: var(--forest);
+}
+.address-edit::after {
+  content: " 编辑";
+  font-size: 11px;
+  opacity: 0.7;
+}
+.address-images {
+  margin: 24px 0;
+}
+.address-photo-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 16px 0;
+}
+.address-photo-item {
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: 12px;
+  background: #e9eee8;
+}
+.address-photo-item > button:first-child {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  border-radius: 12px;
+  padding: 0;
+}
+.address-photo-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  font-size: 11px;
+}
+.address-photo-item .photo-remove {
+  position: absolute;
+  right: -6px;
+  top: -6px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 2px 8px #0002;
+  font-size: 24px;
+}
+.address-photo-viewer {
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  background: #101b18f5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 16px;
+  color: white;
+}
+.address-photo-viewer > img {
+  max-width: 100%;
+  max-height: 75vh;
+  object-fit: contain;
+}
+.address-photo-viewer button {
+  color: white;
+  font-size: 32px;
+  min-width: 48px;
+  min-height: 48px;
+}
+.address-photo-viewer .viewer-close {
+  position: absolute;
+  right: 12px;
+  top: 12px;
+}
+.address-photo-viewer > div {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  margin-top: 12px;
+}
+.address-photo-viewer button:disabled {
+  opacity: 0.25;
+}
+.category-type-row {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+.category-type-row > span:first-child {
+  flex: 0 0 auto;
+  min-width: 4em;
+  white-space: nowrap;
+}
+.category-type-row .seg {
+  flex: 0 0 152px;
+  width: 152px;
+  min-width: 0;
+  margin-left: auto;
+}
+.category-type-row .seg button {
+  white-space: nowrap;
+}
+.category-custom-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: inherit;
+}
+.preview .category-custom-image {
+  width: 64px;
+  height: 64px;
+  border-radius: 16px;
+}
+.icon-crop-dialog {
+  position: fixed;
+  inset: 0;
+  z-index: 600;
+  background: #f7f8f4;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  overflow: auto;
+}
+.icon-crop-dialog canvas {
+  width: min(256px, 100%);
+  height: auto;
+  touch-action: none;
+  border-radius: 16px;
+  box-shadow: 0 0 0 2px #356555;
+}
+.icon-crop-dialog input {
+  width: min(280px, 100%);
+  accent-color: #356555;
+}
+.icon-crop-dialog .two-actions {
+  width: min(340px, 100%);
+}

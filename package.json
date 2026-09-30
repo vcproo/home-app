@@ -1,10 +1,10 @@
 {
   "name": "family-life-mobile",
-  "version": "1.5.0",
+  "version": "1.5.5",
   "private": true,
   "description": "Android client with local HTTPS backend and MySQL persistence.",
   "scripts": {
-    "test": "node tests/ui_entries_check.js && node tests/ui-money-check.js && node tests/ledger-edit-check.js && node tests/nutrition-check.js && node tests/vision-check.js",
+    "test": "node tests/ui_entries_check.js && node tests/ui-money-check.js && node tests/ledger-edit-check.js && node tests/nutrition-check.js && node tests/vision-check.js && node tests/account-navigation-check.js",
     "format": "prettier --write web/js/*.js web/css/*.css web/index.html tests/*.js",
     "format:check": "prettier --check web/js/*.js web/css/*.css web/index.html tests/*.js"
   },

@@ -24,6 +24,9 @@ import java.nio.charset.StandardCharsets;
 public class MainActivity extends Activity {
     private static final int EXPORT_REQUEST = 41;
     private static final int FOOD_PICK = 42, FOOD_CAMERA = 43;
+    private static final int ADDRESS_PICK = 44;
+    private String addressPhotoSession;
+    private int addressPhotoLimit;
     private final java.util.concurrent.ExecutorService foodExecutor = java.util.concurrent.Executors.newFixedThreadPool(2);
     private final java.util.concurrent.ExecutorService backendExecutor = java.util.concurrent.Executors.newSingleThreadExecutor();
     private volatile FoodVisionClient foodClient;
@@ -108,6 +111,14 @@ public class MainActivity extends Activity {
     }
 
     private final class LocalBridge {
+        @JavascriptInterface public void chooseAddressPhotos(String session,int limit) {
+            runOnUiThread(()->{
+                if(addressPhotoSession!=null)return;
+                addressPhotoSession=session;addressPhotoLimit=Math.max(1,Math.min(9,limit));
+                try{Intent intent=new Intent(Intent.ACTION_OPEN_DOCUMENT);intent.addCategory(Intent.CATEGORY_OPENABLE);intent.setType("image/*");intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE,true);intent.putExtra(Intent.EXTRA_MIME_TYPES,new String[]{"image/jpeg","image/png","image/webp"});startActivityForResult(intent,ADDRESS_PICK);}
+                catch(Exception e){addressPhotoSession=null;addressPhotosCallback(session,new org.json.JSONArray(),"无法打开相册，请检查是否有可用的图片应用");}
+            });
+        }
         @JavascriptInterface public String getBackendConfig(){
             try{JSONObject config=new ModelConfigStore(MainActivity.this,"backend-session").read();return new JSONObject().put("endpoint",config.optString("endpoint","https://localhost:8787")).put("hasSession",!config.optString("token").isEmpty()).toString();}catch(Exception e){return "{}";}
         }
@@ -235,6 +246,15 @@ public class MainActivity extends Activity {
 
     @Override protected void onActivityResult(int request, int result, Intent data) {
         super.onActivityResult(request,result,data);
+        if(request==ADDRESS_PICK){
+            String session=addressPhotoSession;addressPhotoSession=null;
+            if(session==null)return;
+            if(result!=RESULT_OK||data==null){addressPhotosCallback(session,new org.json.JSONArray(),null);return;}
+            java.util.ArrayList<Uri> uris=new java.util.ArrayList<>();
+            if(data.getClipData()!=null){for(int i=0;i<Math.min(addressPhotoLimit,data.getClipData().getItemCount());i++)uris.add(data.getClipData().getItemAt(i).getUri());}
+            else if(data.getData()!=null)uris.add(data.getData());
+            foodExecutor.execute(()->{org.json.JSONArray images=new org.json.JSONArray();try{for(Uri uri:uris)images.put(readFoodPhoto(uri));addressPhotosCallback(session,images,null);}catch(Exception e){addressPhotosCallback(session,new org.json.JSONArray(),"部分图片无法读取，请重新选择 JPG、PNG 或 WebP 图片");}});return;
+        }
         if(request==FOOD_PICK || request==FOOD_CAMERA){
             choosingFood=false;
             if(result!=RESULT_OK){if(request==FOOD_CAMERA)new java.io.File(getCacheDir(),"food-capture.jpg").delete();return;}
@@ -264,6 +284,9 @@ public class MainActivity extends Activity {
 
     private void photoCallback(String image,String error){
         runOnUiThread(() -> {try{JSONObject result=new JSONObject();if(image!=null)result.put("image",image);if(error!=null)result.put("error",error);if(webView!=null)webView.evaluateJavascript("foodPhotoResult("+result.toString()+")",null);}catch(Exception ignored){}});
+    }
+    private void addressPhotosCallback(String session,org.json.JSONArray images,String error){
+        runOnUiThread(()->{try{JSONObject result=new JSONObject().put("images",images);if(error!=null)result.put("error",error);if(webView!=null)webView.evaluateJavascript("window.addressPhotosResult && addressPhotosResult("+JSONObject.quote(session)+","+result+")",null);}catch(Exception ignored){}});
     }
     private String readFoodPhoto(Uri uri) throws Exception {
         android.graphics.BitmapFactory.Options options=new android.graphics.BitmapFactory.Options();options.inJustDecodeBounds=true;
