@@ -31,16 +31,35 @@ class DatabaseIntegration(unittest.TestCase):
             conn.commit()
         finally:conn.close()
 
-    def register(self):
+    def register(self, family=True):
         phone='199'+str(secrets.randbelow(10**8)).zfill(8)
         r=self.client.post('/api/auth/register',json={'phone':phone,'password':'Test!752'});self.assertEqual(r.status_code,200,r.json)
-        value=r.json;value['phone']=phone;self.users.append(value['user']['id']);self.families.append(value['user']['familyId']);return value
+        value=r.json;value['phone']=phone;self.users.append(value['user']['id']);
+        if family:
+            created=self.call(value,'POST','/api/family/create',{'name':'测试家庭'})
+            self.assertEqual(created.status_code,200,created.json)
+            value.update(created.json);self.families.append(value['user']['familyId'])
+        return value
 
     def call(self,account,method,path,body=None):
         return self.client.open(path,method=method,json=body,headers={'Authorization':'Bearer '+account['token']})
 
     def payload(self,account):
         return {**{k:account[k] for k in ('familyRevision','personalRevision')},'familyId':account['user']['familyId'],'requestId':str(uuid.uuid4()),'data':{k:copy.deepcopy(account['data'][k]) for k in db.FAMILY_KEYS+db.PERSONAL_KEYS}}
+
+    def test_family_onboarding(self):
+        fresh=self.register(False)
+        self.assertIsNone(fresh['user']['familyId'])
+        self.assertTrue(self.call(fresh,'GET','/api/data').json['needsFamily'])
+        login=self.client.post('/api/auth/login',json={'phone':fresh['phone'],'password':'Test!752'})
+        self.assertTrue(login.json['needsFamily'])
+        self.assertEqual(self.call(fresh,'POST','/api/family/create',{'name':'   '}).status_code,400)
+        self.assertEqual(self.call(fresh,'POST','/api/family/join',{'code':'BAD'}).status_code,400)
+        joined=self.call(fresh,'POST','/api/family/join',{'code':self.a['data']['invite']})
+        self.assertEqual(joined.status_code,200,joined.json)
+        self.assertEqual(joined.json['user']['familyId'],self.a['user']['familyId'])
+        self.assertEqual(self.call(fresh,'POST','/api/family/create',{'name':'重复'}).status_code,409)
+        self.assertEqual(self.call(fresh,'GET','/api/data').json['user']['familyId'],self.a['user']['familyId'])
 
     def test_authentication(self):
         self.assertEqual(self.client.get('/api/data').status_code,401)

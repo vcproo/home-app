@@ -11,10 +11,10 @@ final class BackendClient {
         return value.trim().replaceAll("/+$","");
     }
     static JSONObject request(JSONObject config,String path,String method,String body) throws Exception {
-        if(!path.matches("/api/(data|health|logout|legacy-backup|address-photos(/[a-f0-9]{32})?|auth/(login|register)|family/(invite|join))")||!method.matches("GET|POST|PUT"))throw new Exception("请求不受支持");
+        if(!path.matches("/api/(data|health|logout|legacy-backup|address-photos(/[a-f0-9]{32})?|auth/(login|register)|family/(invite|join|create))")||!method.matches("GET|POST|PUT"))throw new Exception("请求不受支持");
         HttpURLConnection connection=(HttpURLConnection)new URL(endpoint(config.optString("endpoint","https://localhost:8787"))+path).openConnection();
         try {
-            connection.setInstanceFollowRedirects(false);connection.setRequestMethod(method);connection.setConnectTimeout(10000);connection.setReadTimeout(20000);
+            connection.setInstanceFollowRedirects(false);connection.setRequestMethod(method);connection.setConnectTimeout(60000);connection.setReadTimeout(60000);
             connection.setRequestProperty("Content-Type","application/json");
             if(!config.optString("token").isEmpty())connection.setRequestProperty("Authorization","Bearer "+config.getString("token"));
             if(!method.equals("GET")){

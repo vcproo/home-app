@@ -27,7 +27,7 @@ final class FoodVisionClient {
         HttpURLConnection connection=(HttpURLConnection)new URI(endpoint(config.getString("endpoint"))).toURL().openConnection();active=connection;
         try {
             if(cancelled)throw new Exception("识别已取消");
-            connection.setInstanceFollowRedirects(false);connection.setRequestMethod("POST");connection.setConnectTimeout(20000);connection.setReadTimeout(90000);
+            connection.setInstanceFollowRedirects(false);connection.setRequestMethod("POST");connection.setConnectTimeout(60000);connection.setReadTimeout(60000);
             connection.setDoOutput(true);connection.setRequestProperty("Content-Type","application/json");
             if(!config.optString("apiKey").isEmpty())connection.setRequestProperty("Authorization","Bearer "+config.getString("apiKey"));
             connection.setFixedLengthStreamingMode(data.length);

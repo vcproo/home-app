@@ -24,7 +24,7 @@ python -m unittest tests.test_shipped_rules -v
 ./tools/build-android.ps1 -JavaHome $env:JAVA_HOME
 ```
 
-构建前运行 `python tools/setup-local-tls.py` 生成本机调试证书。输出：根目录 `app-debug.apk` 和 `artifacts/family-life-mobile-v2-1.5.5.apk`。这是开发签名包，正式发布仍需配置生产签名。
+构建前运行 `python tools/setup-local-tls.py` 生成本机调试证书。输出：根目录 `app-debug.apk` 和 `artifacts/family-life-mobile-v2-1.5.8.apk`。这是开发签名包，正式发布仍需配置生产签名。
 
 启动本地对照服务：
 

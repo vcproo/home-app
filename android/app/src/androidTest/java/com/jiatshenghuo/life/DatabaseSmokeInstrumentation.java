@@ -34,7 +34,14 @@ public class DatabaseSmokeInstrumentation extends Instrumentation {
             original=config.read();config.write(new JSONObject().put("endpoint","https://localhost:8787"));launch();
             String phone="198"+String.format(java.util.Locale.US,"%08d",new java.security.SecureRandom().nextInt(100000000));
             js("state.authMode='register';render();document.getElementById('phone').value='"+phone+"';document.getElementById('password').value='DBtest!872';document.getElementById('confirm').value='DBtest!872';submitAuth();true");
-            waitFor("CloudSync.active && state.route==='home'","Registration");uid=config.read().getInt("userId");
+            waitFor("CloudSync.active && state.route==='family-setup'","Registration family setup");
+            uid=config.read().getInt("userId");
+            verify("CloudSync.user.familyId===null","Registration created an unwanted family");
+            js("go('home')");verify("state.route==='family-setup'","Family setup bypass");
+            runOnMainSync(()->activity.finish());Thread.sleep(300);launch();
+            waitFor("state.route==='family-setup'","Restore unfinished family setup");
+            js("document.getElementById('family-name').value='测试家庭';document.getElementById('create-family').click()");
+            waitFor("CloudSync.active && state.route==='home'","Create family");uid=config.read().getInt("userId");
             verify("state.accounts.length===0 && state.ledger.length===0 && healthCurrent().weight===null","New user received sample data");
             js("go('accounts');true");
             verify("document.querySelector('.asset-summary .hero').textContent==='0.00'","New account family assets must be zero");
@@ -79,9 +86,14 @@ public class DatabaseSmokeInstrumentation extends Instrumentation {
                 js("document.getElementById('save-category-edit').click();true");saved();
                 verify("CAT_LOOK['修改后的自定义分类'].length===4 && state.categories.income.includes('修改后的自定义分类')","Category edit icon persistence");
             } finally {removeMonitor(pickerMonitor);sample.delete();}
+            js("go('renqing');go('renqing-add');document.getElementById('rq-name').value='人情编辑测试';document.getElementById('rq-reason').value='婚礼';document.getElementById('rq-amount').value='100';document.getElementById('save-renqing').click();true");saved();
+            js("document.querySelector('[data-renqing-edit]').click();document.getElementById('rq-name').value='修改后的亲友';document.getElementById('rq-reason').value='回礼';document.getElementById('rq-amount').value='50';document.getElementById('rq-note').value='修改备注';document.querySelector('[data-side=in]').click();document.getElementById('save-renqing').click();true");saved();
+            verify("state.renqing.length===1 && state.renqing[0].name==='修改后的亲友' && state.renqing[0].side==='in' && state.accounts[0].balance===1025 && state.ledger.length===2","Gift edit balance and linked ledger");
+            js("document.querySelector('[data-renqing-edit]').click();document.getElementById('rq-name').value='取消修改';appBack();true");
+            verify("state.route==='renqing' && state.renqing[0].name==='修改后的亲友'","Cancel gift edit must not change record");
             // Fresh native Activity restores its encrypted session and reads the database.
             runOnMainSync(()->activity.finish());Thread.sleep(350);launch();waitFor("CloudSync.active && state.route==='home'","Session restore");saved();
-            verify("state.accounts[0].balance===975 && state.ledger.length===1 && healthCurrent().weight===70.8 && healthCurrent().meals[0].calories===230","Database restart restore");
+            verify("state.accounts[0].balance===1025 && state.ledger.length===2 && state.renqing[0].note==='修改备注' && healthCurrent().weight===70.8 && healthCurrent().meals[0].calories===230","Database restart restore");
             verify("state.addresses[0].name==='编辑后的地址' && state.addresses[0].photos.length===1","Address database restore");
             js("state.categoryKind='income';go('categories');true");
             waitFor("document.querySelector('.category-custom-image')?.naturalWidth===256","Custom icon database restore");

@@ -177,7 +177,7 @@ function bindFoodPhoto() {
           p.error = "识别超时，请重试";
           if (state.route === "food-photo") render();
         }
-      }, 120000);
+      }, 60000);
       if (window.AndroidBridge?.analyzeFood) {
         AndroidBridge.analyzeFood(id, JSON.stringify(body));
         return;

@@ -356,6 +356,13 @@ function personalTotal() {
 function go(route, draft) {
   if (
     typeof CloudSync !== "undefined" &&
+    CloudSync.active &&
+    !CloudSync.user.familyId &&
+    route !== "cloud-settings"
+  )
+    route = "family-setup";
+  if (
+    typeof CloudSync !== "undefined" &&
     !CloudSync.active &&
     !["login", "cloud-settings"].includes(route)
   )
@@ -757,7 +764,7 @@ function screenMembers() {
     ["#eef1fb", "#7a95c0"],
   ];
   return page(`${back("成员管理", '<button class="linkish" data-go="invite">邀请</button>')}${familyCard(true)}${section("家庭成员", `<span class="sub">${state.members.length} / 8</span>`)}
-  <div class="list-card">${state.members.map((m, i) => `<div class="row-card"><div class="avatar" style="background:${colors[i % 4][0]};color:${colors[i % 4][1]}">${esc(m.name[0])}</div><div class="grow"><div class="title">${esc(m.name)}${m.role === "管理员" ? '<span class="tag">管理员</span>' : ""}</div><div class="sub">${esc(m.desc)}</div></div>${svg("right", 14)}</div>`).join("")}</div><div class="group">邀请码</div><div class="list-card"><button class="tx" data-go="invite">${chip("ticket")}<span class="grow"><span class="title">邀请码 ${esc(state.invite)}</span><span class="sub" style="display:block">手动刷新前一直有效</span></span><span class="tag">查看</span></button></div><button class="btn" data-go="invite" style="margin-top:26px">${svg("users", 18)}邀请新成员</button>`);
+  <div class="list-card">${state.members.map((m, i) => `<div class="row-card"><div class="avatar" style="background:${colors[i % 4][0]};color:${colors[i % 4][1]}">${esc(m.name[0])}</div><div class="grow"><div class="title">${esc(m.name)}${m.role === "管理员" ? '<span class="tag">管理员</span>' : ""}</div><div class="sub">${esc(m.desc)}</div></div>${svg("right", 14)}</div>`).join("")}</div><div class="group">邀请码</div><div class="list-card"><button class="tx" data-go="invite">${chip("ticket")}<span class="grow"><span class="title">邀请码 ${esc(state.invite)}</span><span class="sub" style="display:block">手动刷新前一直有效</span></span><span class="tag">查看</span></button></div><button class="btn" data-go="invite" style="margin-top:26px">${svg("users", 18)}邀请新成员</button><button class="btn ghost" data-go="family-setup" style="margin-top:12px">使用邀请码加入家庭</button>`);
 }
 
 function screenInvite() {
@@ -805,7 +812,7 @@ function screenRenqing() {
           .filter((r) => r.day === day)
           .map(
             (r) =>
-              `<div class="tx"><div class="grow"><div class="title">${esc(r.name)} · ${esc(r.reason)} · ${r.side === "out" ? "随" : "收"}</div><div class="sub">${esc(r.member)} · ${esc(r.time)}<br/>备注：${esc(r.note || "无")}</div></div><span class="${r.side === "in" ? "pos" : "neg"}">${r.side === "in" ? "+" : "-"}${money(r.amount)}</span></div>`,
+              `<button class="tx" data-renqing-edit="${r.id}" aria-label="修改${esc(r.name)}的人情记录"><span class="grow"><span class="title">${esc(r.name)} · ${esc(r.reason)} · ${r.side === "out" ? "随" : "收"}</span><span class="sub" style="display:block">${esc(r.member)} · ${esc(r.time)}<br/>备注：${esc(r.note || "无")}</span></span><span class="${r.side === "in" ? "pos" : "neg"}">${r.side === "in" ? "+" : "-"}${money(r.amount)}</span>${svg("right", 14)}</button>`,
           )
           .join("")}</div>`,
     )
@@ -819,7 +826,7 @@ function screenRenqingAdd() {
   const d = state.draft,
     out = d.side !== "in";
   return page(
-    `${back("添加人情", "", true)}<div class="seg"><button data-side="out" class="${out ? "on" : ""}">随出</button><button data-side="in" class="${out ? "" : "on"}">收回</button></div><div class="form-card">
+    `${back(d.rqEditId != null ? "修改人情" : "添加人情", "", true)}<div class="seg"><button data-side="out" class="${out ? "on" : ""}">随出</button><button data-side="in" class="${out ? "" : "on"}">收回</button></div><div class="form-card">
   <label class="kv"><span>日期</span><input type="date" id="rq-date" value="${esc(d.ledDate || (typeof CloudSync !== "undefined" ? healthToday() : "2026-09-24"))}" aria-label="日期"/>${svg("right", 14)}</label>
   <label class="kv"><span>姓名</span><input id="rq-name" placeholder="请输入姓名" value="${esc(d.rqName || "")}"/></label>
   <label class="kv"><span>事由</span><input id="rq-reason" placeholder="婚礼、满月酒" value="${esc(d.rqReason || "")}"/></label>
@@ -922,6 +929,7 @@ function render() {
   const map = {
     login: screenLogin,
     "cloud-settings": () => CloudSync.screen(),
+    "family-setup": () => CloudSync.familySetup(),
     home: screenHome,
     stats: screenStats,
     assets: screenAssetHub,
@@ -1423,6 +1431,22 @@ function bind() {
   });
   save("save-ledger", saveLedgerRow);
   save("save-renqing", saveRenqing);
+  on("[data-renqing-edit]", (el) => {
+    const r = state.renqing.find(
+      (r) => r.id === Number(el.dataset.renqingEdit),
+    );
+    if (r)
+      go("renqing-add", {
+        rqEditId: r.id,
+        side: r.side,
+        ledDate: r.occurredOn || occurredOn(r.day),
+        rqName: r.name,
+        rqReason: r.reason,
+        rqAmount: String(r.amount),
+        rqNote: r.note || "",
+        accountId: r.accountId,
+      });
+  });
   save("save-account", saveAccount);
   save("save-house", saveHouseRow);
   save("save-address", saveAddressRow);
@@ -1720,6 +1744,60 @@ function saveRenqing(input) {
     state.formError = "请选择账户";
     render();
     return false;
+  }
+  const editId = input?.editId ?? state.draft.rqEditId;
+  if (editId != null) {
+    const previous = state.renqing.find((r) => r.id === editId);
+    const oldAccount = previous && accountOf(previous.accountId);
+    if (!previous || !oldAccount) {
+      state.formError = "原记录或账户已不存在，请返回重新加载";
+      render();
+      return false;
+    }
+    let linked = state.ledger.find(
+      (r) =>
+        r.renqingId === previous.id ||
+        (previous.ledgerId != null && r.id === previous.ledgerId),
+    );
+    applyAmount(
+      oldAccount,
+      previous.side === "out" ? "income" : "expense",
+      previous.amount,
+    );
+    applyAmount(account, side === "out" ? "expense" : "income", amount);
+    Object.assign(previous, {
+      name,
+      reason,
+      side,
+      day,
+      occurredOn: bookedOn,
+      note: given(input, "note", "rq-note"),
+      amount,
+      accountId: account.id,
+    });
+    if (!linked) {
+      let id = Date.now();
+      while (state.ledger.some((r) => r.id === id)) id++;
+      linked = { id, source: SOURCE_MANUAL };
+      state.ledger.unshift(linked);
+    }
+    Object.assign(linked, {
+      renqingId: previous.id,
+      day,
+      occurredOn: bookedOn,
+      kind: side === "out" ? "expense" : "income",
+      category: "人情",
+      title: name,
+      member: previous.member,
+      time: previous.time,
+      amount,
+      accountId: account.id,
+      note: previous.note,
+    });
+    previous.ledgerId = linked.id;
+    go("renqing");
+    toast("人情记录已修改，余额与统计已更新");
+    return true;
   }
   applyAmount(account, side === "out" ? "expense" : "income", amount);
   const renqingId = Date.now();
@@ -2164,6 +2242,15 @@ function captureDraft() {
     state.draft.account = readAccountDraft();
 }
 function appBack() {
+  if (
+    typeof CloudSync !== "undefined" &&
+    CloudSync.active &&
+    !CloudSync.user.familyId
+  ) {
+    if (state.route === "family-setup") return false;
+    go("family-setup");
+    return true;
+  }
   if (typeof CategoryIcons !== "undefined" && CategoryIcons.close()) return;
   if (typeof AddressPhotos !== "undefined" && AddressPhotos.closeViewer())
     return;

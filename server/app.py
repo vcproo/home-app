@@ -73,7 +73,7 @@ def throttle():
 @app.get('/api/health')
 def health():
     with g.conn.cursor() as cur:cur.execute('SELECT 1')
-    return jsonify(ok=True,storage='mysql',version='1.5.4')
+    return jsonify(ok=True,storage='mysql',version='1.5.7')
 
 @app.post('/api/auth/<action>')
 def auth(action):
@@ -136,6 +136,9 @@ def save():return jsonify(db.write_data(g.conn,g.uid,body()))
 
 @app.post('/api/family/invite')
 def refresh():return jsonify(db.refresh_invite(g.conn,g.uid))
+
+@app.post('/api/family/create')
+def create_family():return jsonify(db.create_family(g.conn,g.uid,body().get('name')))
 
 @app.post('/api/family/join')
 def join():

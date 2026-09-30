@@ -42,7 +42,7 @@ const CloudSync = (() => {
   ]);
   function canRefresh() {
     return (
-      user &&
+      user?.familyId &&
       !dirty &&
       !saving &&
       !busy &&
@@ -112,7 +112,7 @@ const CloudSync = (() => {
         const timer = setTimeout(() => {
           pending.delete(id);
           reject(new Error("连接超时，修改仍保留在本机待同步"));
-        }, 35000);
+        }, 60000);
         pending.set(id, { resolve, reject, timer });
         AndroidBridge.backendRequest(
           id,
@@ -128,7 +128,7 @@ const CloudSync = (() => {
         ...(token ? { Authorization: "Bearer " + token } : {}),
       },
       ...(method === "GET" ? {} : { body: JSON.stringify(data || {}) }),
-      signal: AbortSignal.timeout(30000),
+      signal: AbortSignal.timeout(60000),
       redirect: "error",
     }).then(async (r) => {
       const value = await r.json();
@@ -263,7 +263,7 @@ const CloudSync = (() => {
     el.onclick = () => go("cloud-settings");
   }
   function persist() {
-    if (!user || state.preview) return;
+    if (!user?.familyId || state.preview) return;
     dirty = JSON.stringify(snapshot()) !== acknowledged;
     storeCache();
     status();
@@ -354,7 +354,7 @@ const CloudSync = (() => {
       state.password = "";
       state.confirm = "";
       accept(result);
-      go("home");
+      go(user.familyId ? "home" : "family-setup");
     } catch (e) {
       state.formError = e.message;
       render();
@@ -372,7 +372,7 @@ const CloudSync = (() => {
       busy = true;
       try {
         accept(await request("/api/data"));
-        go("home");
+        go(user.familyId ? "home" : "family-setup");
       } catch (e) {
         state.formError = "无法恢复登录：" + e.message;
         render();
@@ -395,6 +395,16 @@ const CloudSync = (() => {
     } catch (e) {
       toast(e.message);
     }
+  }
+  function familySetup() {
+    const existing = !!user?.familyId;
+    return page(`${existing ? back("加入家庭") : '<header class="top"><h2>欢迎，先设置你的家庭</h2></header>'}
+      <p class="sub">${existing ? "已有数据或其他成员的家庭不能直接切换。" : "创建自己的家庭，或使用家人分享的邀请码加入。完成后即可开始记录。"}</p>
+      ${existing ? "" : `<div class="form-card"><h3>创建家庭</h3>${inputField("家庭名称", "family-name", "例如：温暖的小家", "", 'maxlength="40"')}<button class="btn" id="create-family">创建并进入</button></div>`}
+      <div class="form-card" style="margin-top:20px"><h3>加入家庭</h3>${inputField("家庭邀请码", "join-code", "输入家人分享的6位邀请码", "", 'maxlength="6" autocapitalize="characters" autocomplete="off"')}<button class="btn ghost" id="join-family">加入家庭</button></div>
+      <p class="sub">家庭账本、分类、人情、房屋和地址与家人共享，个人健康记录仅自己可见。</p>
+      <p id="family-error" class="sub" role="alert"></p>
+      ${existing ? "" : '<button class="linkish" id="cloud-logout">退出登录</button>'}`);
   }
   function screen() {
     return page(
@@ -426,7 +436,9 @@ const CloudSync = (() => {
         try {
           await fn();
         } catch (e) {
-          toast(e.message);
+          const error = document.getElementById("family-error");
+          if (error) error.textContent = e.message;
+          else toast(e.message);
         } finally {
           busy = false;
         }
@@ -494,13 +506,24 @@ const CloudSync = (() => {
       render();
       toast("旧记录已备份，导入状态请查看上方提示");
     });
+    on("create-family", async () => {
+      accept(
+        await request("/api/family/create", "POST", {
+          name: field("family-name").trim(),
+        }),
+        false,
+      );
+      go("home");
+    });
     on("join-family", async () => {
       if (dirty || saving) throw Error("请先完成数据保存");
       accept(
-        await request("/api/family/join", "POST", { code: field("join-code") }),
+        await request("/api/family/join", "POST", {
+          code: field("join-code").trim().toUpperCase(),
+        }),
         false,
       );
-      go("members");
+      go("home");
     });
     on("cloud-logout", async () => {
       if (dirty || saving)
@@ -549,6 +572,7 @@ const CloudSync = (() => {
     persist,
     bind,
     screen,
+    familySetup,
     refresh,
     request,
     status,

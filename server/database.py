@@ -83,13 +83,7 @@ def ensure_user(conn, uid):
         member = cur.fetchone()
         if member:
             fid = member[0]
-        else:
-            name = nickname or '用户' + phone[-4:]
-            cur.execute('INSERT INTO families(name,member_limit) VALUES(%s,8)', (name+'的家',))
-            fid = cur.lastrowid
-            cur.execute("INSERT INTO members(family_id,user_id,role,display_name) VALUES(%s,%s,'admin',%s)", (fid,uid,name))
-            cur.execute('INSERT INTO invite_codes(family_id,code,active,created_at) VALUES(%s,%s,1,UTC_TIMESTAMP())', (fid, secrets.token_hex(3).upper()))
-        cur.execute('INSERT IGNORE INTO app_family_data(family_id,payload) VALUES(%s,%s)', (fid,dumps(empty_family())))
+            cur.execute('INSERT IGNORE INTO app_family_data(family_id,payload) VALUES(%s,%s)', (fid,dumps(empty_family())))
         cur.execute('INSERT IGNORE INTO app_personal_data(user_id,payload) VALUES(%s,%s)', (uid,dumps(empty_personal())))
     conn.commit()
 
@@ -104,6 +98,14 @@ def session(conn, uid):
     return {'token':token, **read_data(conn,uid)}
 
 def read_data(conn, uid):
+    with conn.cursor() as cur:
+        cur.execute('SELECT id FROM members WHERE user_id=%s LIMIT 1', (uid,))
+        if not cur.fetchone():
+            cur.execute('SELECT revision,payload FROM app_personal_data WHERE user_id=%s', (uid,))
+            pr, personal = cur.fetchone()
+            return {'user': {'id':uid,'familyId':None}, 'needsFamily':True,
+                    'familyRevision':0,'personalRevision':pr,
+                    'data':{**empty_family(),**json.loads(personal),'members':[],'invite':'','familyName':''}}
     member = membership(conn,uid)
     with conn.cursor() as cur:
         cur.execute('SELECT revision,payload FROM app_family_data WHERE family_id=%s', (member['familyId'],))
@@ -229,26 +231,47 @@ def refresh_invite(conn,uid):
         cur.execute('INSERT INTO invite_codes(family_id,code,active,created_at) VALUES(%s,%s,1,UTC_TIMESTAMP())',(member['familyId'],code))
     conn.commit();return {'invite':code}
 
+def create_family(conn,uid,name):
+    if not isinstance(name,str) or not 1<=len(name.strip())<=40:
+        raise ApiError('请填写1至40字的家庭名称')
+    with conn.cursor() as cur:
+        cur.execute('SELECT phone,nickname FROM users WHERE id=%s FOR UPDATE',(uid,))
+        phone,nickname=cur.fetchone()
+        cur.execute('SELECT id FROM members WHERE user_id=%s LIMIT 1 FOR UPDATE',(uid,))
+        if cur.fetchone():raise ApiError('你已有家庭，请勿重复创建',409)
+        cur.execute('INSERT INTO families(name,member_limit) VALUES(%s,8)',(name.strip(),))
+        fid=cur.lastrowid
+        cur.execute("INSERT INTO members(family_id,user_id,role,display_name) VALUES(%s,%s,'admin',%s)",(fid,uid,nickname or '用户'+phone[-4:]))
+        cur.execute('INSERT INTO invite_codes(family_id,code,active,created_at) VALUES(%s,%s,1,UTC_TIMESTAMP())',(fid,secrets.token_hex(3).upper()))
+        cur.execute('INSERT INTO app_family_data(family_id,payload) VALUES(%s,%s)',(fid,dumps(empty_family())))
+    conn.commit();return read_data(conn,uid)
+
 def join_family(conn,uid,code):
     if not isinstance(code,str) or not re.fullmatch(r'[A-Z0-9]{6}',code):raise ApiError('请输入6位邀请码')
-    # Lock membership first; all membership mutations use the same order.
-    member=membership(conn,uid,True)
     with conn.cursor() as cur:
+        cur.execute('SELECT phone,nickname FROM users WHERE id=%s FOR UPDATE',(uid,))
+        phone,nickname=cur.fetchone()
+        cur.execute('SELECT id,family_id FROM members WHERE user_id=%s ORDER BY id LIMIT 1 FOR UPDATE',(uid,))
+        member=cur.fetchone()
         cur.execute('SELECT family_id FROM invite_codes WHERE code=%s AND active=1 ORDER BY id DESC LIMIT 1',(code,))
         target=cur.fetchone()
         if not target:raise ApiError('邀请码无效')
         fid=target[0]
-        if fid==member['familyId']:raise ApiError('你已在这个家庭中')
-        cur.execute('SELECT revision FROM app_family_data WHERE family_id=%s',(member['familyId'],))
-        if cur.fetchone()[0]!=0:raise ApiError('当前家庭已有数据，请先保留现有家庭，使用新账号加入；不会自动合并账本')
-        cur.execute('SELECT id FROM families WHERE id IN (%s,%s) ORDER BY id FOR UPDATE',(fid,member['familyId']))
+        if member and fid==member[1]:raise ApiError('你已在这个家庭中')
+        cur.execute('SELECT id FROM families WHERE id IN (%s,%s) ORDER BY id FOR UPDATE',(fid,member[1] if member else fid))
         cur.fetchall()
-        cur.execute('SELECT id FROM members WHERE family_id=%s FOR UPDATE',(member['familyId'],))
-        if len(cur.fetchall())>1:raise ApiError('当前家庭有其他成员，不能直接切换')
+        if member:
+            cur.execute('SELECT revision FROM app_family_data WHERE family_id=%s FOR UPDATE',(member[1],))
+            if cur.fetchone()[0]!=0:raise ApiError('当前家庭已有数据，不能直接切换家庭；不会自动合并账本')
+            cur.execute('SELECT id FROM members WHERE family_id=%s FOR UPDATE',(member[1],))
+            if len(cur.fetchall())>1:raise ApiError('当前家庭有其他成员，不能直接切换')
         cur.execute('SELECT id FROM members WHERE family_id=%s FOR UPDATE',(fid,))
         if len(cur.fetchall())>=8:raise ApiError('家庭成员已满')
         cur.execute('SELECT id FROM invite_codes WHERE family_id=%s AND code=%s AND active=1 FOR UPDATE',(fid,code))
         if not cur.fetchone():raise ApiError('邀请码已失效')
-        cur.execute("UPDATE members SET family_id=%s,role='member' WHERE id=%s",(fid,member['memberId']))
-        cur.execute('UPDATE invite_codes SET active=0 WHERE family_id=%s',(member['familyId'],))
+        if member:
+            cur.execute("UPDATE members SET family_id=%s,role='member' WHERE id=%s",(fid,member[0]))
+            cur.execute('UPDATE invite_codes SET active=0 WHERE family_id=%s',(member[1],))
+        else:
+            cur.execute("INSERT INTO members(family_id,user_id,role,display_name) VALUES(%s,%s,'member',%s)",(fid,uid,nickname or '用户'+phone[-4:]))
     conn.commit();return read_data(conn,uid)
